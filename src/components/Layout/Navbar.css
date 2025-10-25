@@ -1,0 +1,93 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1000;
+  padding: 0;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+}
+
+.nav-logo {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  text-decoration: none;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.nav-link {
+  color: #666;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+  padding: 0.5rem 0;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #007bff;
+}
+
+.nav-link.register {
+  background: #28a745;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+
+.nav-link.register:hover {
+  background: #218838;
+  color: white;
+}
+
+.nav-user,
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-logout {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.nav-logout:hover {
+  background: #c82333;
+}
+
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0 0.5rem;
+    height: 60px;
+  }
+  
+  .nav-menu {
+    gap: 1rem;
+  }
+  
+  .nav-logo {
+    font-size: 1.25rem;
+  }
+}
