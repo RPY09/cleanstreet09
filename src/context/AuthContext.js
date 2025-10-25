@@ -1,11 +1,22 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+// CleanStreet_Team3/src/context/AuthContext.js (FIXED)
+import React, { createContext, useState, useContext, useEffect } from "react";
+import axios from "axios";
 
-const AuthContext = createContext();
+// ----------------------------------------------------
+// FIX 1: Change 'const' to 'export const' here
+// This allows the useAuth hook to correctly reference the context object.
+// ----------------------------------------------------
+export const AuthContext = createContext();
+const API_URL = "http://localhost:5000/api/auth";
 
 export const useAuth = () => {
+  // ----------------------------------------------------
+  // FIX 2: The rest of the useAuth hook needs to be defined
+  // (It was shown as '...(rest of useAuth hook is the same)' in your input)
+  // ----------------------------------------------------
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -16,7 +27,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check if user is logged in (from localStorage)
-    const savedUser = localStorage.getItem('user');
+    const savedUser = localStorage.getItem("user");
+    // In a production app, you would also check the validity of the JWT token here
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -24,49 +36,55 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    // Simulate API call - replace with actual backend integration
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: 1,
-          name: 'Demo User',
-          username: 'demo_user',
-          email: email,
-          role: 'user',
-          location: 'Downtown District',
-          bio: 'Active citizen helping to improve our community through CleanStreet reporting',
-          memberSince: '2025-01-07'
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve({ success: true, user: mockUser });
-      }, 1000);
-    });
+    try {
+      const response = await axios.post(`${API_URL}/login`, {
+        email,
+        password,
+      });
+
+      const { user, token } = response.data;
+
+      // Store token and user data upon success
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      setUser(user);
+
+      return { success: true, user: user };
+    } catch (error) {
+      // Get error message from the backend response (e.g., 'Invalid credentials')
+      const errorMessage =
+        error.response?.data?.message ||
+        "Login failed. Please check your network.";
+      return { success: false, message: errorMessage };
+    }
   };
 
   const register = async (userData) => {
-    // Simulate API call - replace with actual backend integration
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: 1,
-          ...userData,
-          role: 'user',
-          bio: 'Active citizen helping to improve our community through CleanStreet reporting',
-          memberSince: new Date().toISOString().split('T')[0]
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve({ success: true, user: mockUser });
-      }, 1000);
-    });
+    try {
+      const response = await axios.post(`${API_URL}/register`, userData);
+
+      const { user, token } = response.data;
+
+      // Store token and user data upon success
+      localStorage.setItem("token", token);
+      localStorage.removeItem("token", token); // Bug fix: remove this line, it's redundant.
+      localStorage.setItem("user", JSON.stringify(user));
+      setUser(user);
+
+      return { success: true, user: user };
+    } catch (error) {
+      // Get error message from the backend response (e.g., 'Email already registered')
+      const errorMessage =
+        error.response?.data?.message ||
+        "Registration failed. Please check your network.";
+      return { success: false, message: errorMessage };
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem("user");
+    localStorage.removeItem("token"); // Clear the token too
   };
 
   const value = {
@@ -74,7 +92,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    loading
+    loading,
   };
 
   return (
