@@ -1,19 +1,10 @@
-// CleanStreet_Team3/src/context/AuthContext.js (FIXED)
 import React, { createContext, useState, useContext, useEffect } from "react";
 import axios from "axios";
 
-// ----------------------------------------------------
-// FIX 1: Change 'const' to 'export const' here
-// This allows the useAuth hook to correctly reference the context object.
-// ----------------------------------------------------
 export const AuthContext = createContext();
 const API_URL = "http://localhost:5000/api/auth";
 
 export const useAuth = () => {
-  // ----------------------------------------------------
-  // FIX 2: The rest of the useAuth hook needs to be defined
-  // (It was shown as '...(rest of useAuth hook is the same)' in your input)
-  // ----------------------------------------------------
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
@@ -28,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is logged in (from localStorage)
     const savedUser = localStorage.getItem("user");
-    // In a production app, you would also check the validity of the JWT token here
+    // In a production app check the validity of the JWT token here
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -67,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
       // Store token and user data upon success
       localStorage.setItem("token", token);
-      localStorage.removeItem("token", token); // Bug fix: remove this line, it's redundant.
+      localStorage.removeItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       setUser(user);
 
@@ -128,7 +119,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     loading,
-    updateProfile, // <-- NEW
+    updateProfile,
   };
 
   return (

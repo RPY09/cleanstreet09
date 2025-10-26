@@ -69,7 +69,7 @@ const Profile = () => {
     });
   };
 
-  // Format the member since date safely
+  // Format the member since date
   const formattedMemberSince = user?.memberSince
     ? new Date(user.memberSince).toLocaleDateString()
     : "N/A";
@@ -77,7 +77,6 @@ const Profile = () => {
   // Get initial for avatar
   const avatarInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
 
-  // --- JSX Rendering ---
   return (
     <div className="profile-page">
       <div className="container">
@@ -289,7 +288,7 @@ const Profile = () => {
     </div>
     */}
 
-                {/* --- Actual Password Change Form (Example) --- */}
+                {/* ---Password Change Form  --- */}
                 <div className="security-section">
                   <h3>Change Password</h3>
                   <form className="password-form">
