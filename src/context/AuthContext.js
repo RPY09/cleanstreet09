@@ -14,17 +14,38 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // initialize auth state from localStorage and set axios header if token exists
   useEffect(() => {
-    // Check if user is logged in (from localStorage)
+    const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
-    // In a production app check the validity of the JWT token here
+    if (savedToken) {
+      setToken(savedToken);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
+    }
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        setUser(null);
+      }
     }
     setLoading(false);
   }, []);
+
+  // helper: set token + user in state, localStorage and axios header
+  const loginWithToken = (newToken, newUser) => {
+    if (!newToken) return;
+    localStorage.setItem("token", newToken);
+    if (newUser) {
+      localStorage.setItem("user", JSON.stringify(newUser));
+    }
+    axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+    setToken(newToken);
+    setUser(newUser || null);
+  };
 
   const login = async (email, password) => {
     try {
@@ -33,16 +54,13 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      const { user, token } = response.data;
+      const { user: respUser, token: respToken } = response.data;
 
-      // Store token and user data upon success
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      setUser(user);
+      // persist and set in-memory state
+      loginWithToken(respToken, respUser);
 
-      return { success: true, user: user };
+      return { success: true, user: respUser };
     } catch (error) {
-      // Get error message from the backend response (e.g., 'Invalid credentials')
       const errorMessage =
         error.response?.data?.message ||
         "Login failed. Please check your network.";
@@ -54,17 +72,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post(`${API_URL}/register`, userData);
 
-      const { user, token } = response.data;
+      const { user: respUser, token: respToken } = response.data;
 
-      // Store token and user data upon success
-      localStorage.setItem("token", token);
-      localStorage.removeItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      setUser(user);
+      // persist and set in-memory state
+      loginWithToken(respToken, respUser);
 
-      return { success: true, user: user };
+      return { success: true, user: respUser };
     } catch (error) {
-      // Get error message from the backend response (e.g., 'Email already registered')
       const errorMessage =
         error.response?.data?.message ||
         "Registration failed. Please check your network.";
@@ -74,16 +88,18 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem("user");
-    localStorage.removeItem("token"); // Clear the token too
+    localStorage.removeItem("token");
+    delete axios.defaults.headers.common["Authorization"];
   };
 
   const updateProfile = async (userData) => {
-    const token = localStorage.getItem("token");
+    const storedToken = localStorage.getItem("token");
     try {
       const response = await axios.put(`${API_URL}/profile`, userData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${storedToken}`,
         },
       });
 
@@ -111,15 +127,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ...
-  // Add updateProfile to the returned value object
   const value = {
     user,
+    token,
     login,
     register,
     logout,
     loading,
     updateProfile,
+    loginWithToken, // exposed so external flows (OTP verify) can set auth state
   };
 
   return (
