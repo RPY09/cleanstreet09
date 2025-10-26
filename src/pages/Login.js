@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios"; // <-- ADDED AXIOS IMPORT for OTP/Location
+import axios from "axios";
 import "./Auth.css";
 
-// Assuming your backend API is accessible at this URL
 const API_URL = "http://localhost:5000/api/auth";
 
-// Replace with your actual Google Maps API Key or a free geocoding service key
-// If this is blank, the location will be saved as Lat/Lng coordinates.
 const GOOGLE_API_KEY = ""; // Leave blank if not using external service
 
 const Login = () => {
@@ -65,12 +62,9 @@ const Login = () => {
           // Backend returned user and token
           const { user, token } = response.data;
 
-          // IMPORTANT: Use AuthContext helper to set in-memory auth state AND localStorage
-          // This ensures protected routes read the updated React state immediately.
           if (loginWithToken) {
             loginWithToken(token, user);
           } else {
-            // fallback for older contexts: write to localStorage and reload the app
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(user));
             window.location.reload();
@@ -246,7 +240,7 @@ const Login = () => {
 
             {error && <div className="alert alert-error">{error}</div>}
 
-            <form className="auth-form" onSubmit={submitLogin}>
+            <form className="auth-form face-font" onSubmit={submitLogin}>
               <div className="forms-group">
                 <label className="forms-label">Email</label>
                 <div className="input-group">

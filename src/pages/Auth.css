@@ -40,13 +40,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    180deg,
-    rgba(218, 241, 222, 0.95) 0%,
-    rgb(142, 182, 155) 25%,
-    rgba(35, 83, 71, 0.35) 60%,
-    var(--g-darkest) 100%
-  );
+  background: linear-gradient(-180deg, var(--g-4), var(--g-darkest));
   padding: 24px;
 }
 
@@ -82,11 +76,7 @@ body,
   flex-direction: column;
   color: var(--text-on-light);
   /* use a subtle card fill: very light pale with slight tint */
-  background: linear-gradient(
-    180deg,
-    rgba(218, 241, 222, 0.96) 0%,
-    rgba(255, 255, 255, 0.98) 40%
-  );
+  background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
   overflow: hidden;
   border: 1px solid rgba(5, 31, 32, 0.06);
 }
@@ -127,6 +117,10 @@ body,
 }
 
 /* form */
+.face-font {
+  margin-top: 50px;
+  /* gap: 20px; */
+}
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -201,7 +195,7 @@ body,
 /* phone + location row sizing: make them side-by-side and fit */
 .location-row {
   display: flex;
-  gap: 8px;
+  /* gap: 8px; */
   align-items: center;
   position: relative;
 }
