@@ -1,9 +1,8 @@
-// CleanStreet_Team3/backend/routes/authRoutes.js
 const express = require("express");
 const {
   registerUser,
   loginUser,
-  getDashboardData, // <-- This now points to a valid function
+  getDashboardData,
   updateUserProfile,
 } = require("../controllers/authController");
 
@@ -16,6 +15,6 @@ router.post("/login", loginUser);
 router.get("/dashboard", protect, getDashboardData);
 
 // NEW PROTECTED ROUTE for updating profile
-router.put("/profile", protect, updateUserProfile); // <-- NEW
+router.put("/profile", protect, updateUserProfile);
 
 module.exports = router;

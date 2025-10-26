@@ -1,4 +1,3 @@
-// CleanStreet_Team3/backend/controllers/authController.js (CORRECTED & COMPLETE)
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -8,10 +7,10 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 };
 
-// --- Registration Logic (Correct) ---
+// --- Registration  ---
 exports.registerUser = async (req, res) => {
   const { name, username, email, phone, password, location } = req.body;
-  // ... (Registration logic is correct) ...
+
   try {
     let user = await User.findOne({ email });
     if (user) {
@@ -28,7 +27,7 @@ exports.registerUser = async (req, res) => {
       phone,
       location,
       password: hashedPassword,
-      // Add 'role' field for AdminRoute testing
+      // this is for the role or login between the admin and users
       role: email.includes("@admin.com") ? "admin" : "user",
     });
     await user.save();
@@ -44,7 +43,7 @@ exports.registerUser = async (req, res) => {
         email: user.email,
         location: user.location,
         role: user.role,
-        memberSince: user.memberSince, // Include role in response
+        memberSince: user.memberSince,
       },
     });
   } catch (error) {
@@ -55,10 +54,10 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// --- Login Logic (Correct) ---
+// --- Login  ---
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
-  // ... (Login logic is correct) ...
+
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -84,7 +83,7 @@ exports.loginUser = async (req, res) => {
         email: user.email,
         location: user.location,
         role: user.role,
-        memberSince: user.memberSince, // Include role in response
+        memberSince: user.memberSince,
       },
     });
   } catch (error) {
@@ -95,9 +94,6 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// --- FIX: Add the missing getDashboardData function ---
-// @route GET /api/auth/dashboard
-// @access Private
 exports.getDashboardData = async (req, res) => {
   // Uses req.user data set by the protect middleware
   const userId = req.user._id;
@@ -111,12 +107,12 @@ exports.getDashboardData = async (req, res) => {
   };
   const activities = [
     {
-      issue: "Pothole on Elm St. (Your Report)",
+      issue: "Pothole on Road HYD. (Your Report)",
       status: "resolved",
       time: "1 hour ago",
     },
     {
-      issue: "Graffiti at Central Park",
+      issue: "Damage at Central Park",
       status: "in progress",
       time: "3 days ago",
     },
@@ -125,7 +121,7 @@ exports.getDashboardData = async (req, res) => {
   res.status(200).json({ success: true, stats, activities });
 };
 
-// --- Profile Update Logic (Correct) ---
+// --- Profile ---
 exports.updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -139,7 +135,7 @@ exports.updateUserProfile = async (req, res) => {
       user.location = req.body.location || user.location;
       user.bio = req.body.bio || user.bio;
 
-      // Note: role and password should not be updated via this route
+      // role and password should not be updated via this route
 
       const updatedUser = await user.save();
 

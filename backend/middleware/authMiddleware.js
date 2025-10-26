@@ -1,4 +1,3 @@
-// P:\CleanStreet\CleanStreet_Team3\backend\middleware\authMiddleware.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
@@ -18,7 +17,7 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Attach user to the request object (excluding password hash)
-      // Note: User model path is correct because it's relative to the backend root (via the route/controller flow)
+      // User model path is correct because it's relative to the backend root (via the route/controller flow)
       req.user = await User.findById(decoded.id).select("-password");
 
       next(); // Proceed to the next middleware or controller
