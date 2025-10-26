@@ -12,6 +12,7 @@ const app = express();
 // Middleware
 app.use(cors()); // Allows frontend (on different port) to access backend
 app.use(express.json()); // Allows parsing of JSON request body
+app.use("/api/auth", authRoutes);
 
 // Database Connection
 const connectDB = async () => {
