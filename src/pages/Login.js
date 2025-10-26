@@ -237,6 +237,7 @@ const Login = () => {
               <h1>Login to CleanStreet</h1>
               <h2>Join us and start cleaning up the streets!</h2>
             </div>
+            <div className="cleanicon"></div>
 
             {error && <div className="alert alert-error">{error}</div>}
 

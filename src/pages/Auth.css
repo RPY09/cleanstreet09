@@ -104,6 +104,16 @@ body,
   font-weight: 500;
 }
 
+.cleanicon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  /* border: 1px soild black; */
+  background-image: url("../assets/cleanStreet.png");
+  background-size: cover;
+  background-position: center;
+  margin-left: 300px;
+}
 /* alerts */
 .alert {
   padding: 10px 14px;
