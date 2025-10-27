@@ -50,6 +50,7 @@ body,
   max-width: 780px;
   perspective: 1400px;
   padding: 12px;
+  margin-top: 95px;
 }
 
 /* 3d card wrapper */

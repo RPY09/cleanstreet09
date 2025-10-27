@@ -1,76 +1,192 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import './Navbar.css';
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import "./Navbar.css";
+// make sure the image exists at this path (adjust if needed)
+import logoSrc from "../../assets/cleanStreet.png";
+
+/*
+  Updated Navbar:
+  - Uses cleanStreet.png as logo (no leading #)
+  - Modern glass card style using the green palette
+  - Small animations and hover transitions
+  - Mobile toggle (hamburger) that opens a dropdown menu
+  - Uses same font-family as Auth CSS (Inter)
+  - Keeps current routing and permission links
+*/
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
   };
 
+  const toggleMenu = () => setOpen((s) => !s);
+
   return (
-    <nav className="navbar">
-      <div className="nav-container">
-        <Link to="/" className="nav-logo">
-          # CleanStreet
+    <nav className="navbar" aria-label="Primary navigation">
+      <div className={`nav-container ${open ? "open-menu" : ""}`}>
+        <Link to="/" className="nav-logo" onClick={() => setOpen(false)}>
+          <img src={logoSrc} alt="cleanStreet logo" />
+          <span className="brand-text">
+            <span className="title">cleanStreet</span>
+            <span className="subtitle">Keep the streets clean</span>
+          </span>
         </Link>
 
-        <div className="nav-menu">
-          <Link 
-            to="/" 
-            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+        {/* Hamburger for mobile */}
+        <button
+          className="nav-toggle"
+          aria-expanded={open}
+          aria-label={open ? "Close menu" : "Open menu"}
+          onClick={toggleMenu}
+        >
+          <span
+            className="bar"
+            style={{
+              transform: open ? "rotate(45deg) translate(3px, 3px)" : "none",
+            }}
+          />
+          <span className="bar" style={{ opacity: open ? 0 : 1 }} />
+          <span
+            className="bar"
+            style={{
+              transform: open ? "rotate(-45deg) translate(3px, -3px)" : "none",
+            }}
+          />
+        </button>
+
+        <div
+          className="nav-menu"
+          role="menu"
+          aria-hidden={!open && window.innerWidth < 860}
+        >
+          <Link
+            to="/"
+            className={`nav-link ${location.pathname === "/" ? "active" : ""}`}
+            onClick={() => setOpen(false)}
           >
+            <i
+              className="bi bi-house-door-fill"
+              aria-hidden="true"
+              style={{ color: "var(--g-3)" }}
+            ></i>
             Home
           </Link>
-          
+
           {user ? (
             <>
-              <Link 
-                to="/dashboard" 
-                className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}
+              <Link
+                to="/dashboard"
+                className={`nav-link ${
+                  location.pathname === "/dashboard" ? "active" : ""
+                }`}
+                onClick={() => setOpen(false)}
               >
+                <i
+                  className="bi bi-speedometer2"
+                  aria-hidden="true"
+                  style={{ color: "var(--g-3)" }}
+                ></i>
                 Dashboard
               </Link>
-              <Link 
-                to="/report-issue" 
-                className={`nav-link ${location.pathname === '/report-issue' ? 'active' : ''}`}
+
+              <Link
+                to="/report-issue"
+                className={`nav-link ${
+                  location.pathname === "/report-issue" ? "active" : ""
+                }`}
+                onClick={() => setOpen(false)}
               >
+                <i
+                  className="bi bi-exclamation-circle"
+                  aria-hidden="true"
+                  style={{ color: "var(--g-3)" }}
+                ></i>
                 Report Issue
               </Link>
-              <Link 
-                to="/complaints" 
-                className={`nav-link ${location.pathname === '/complaints' ? 'active' : ''}`}
+
+              <Link
+                to="/complaints"
+                className={`nav-link ${
+                  location.pathname === "/complaints" ? "active" : ""
+                }`}
+                onClick={() => setOpen(false)}
               >
+                <i
+                  className="bi bi-inbox-fill"
+                  aria-hidden="true"
+                  style={{ color: "var(--g-3)" }}
+                ></i>
                 View Complaints
               </Link>
-              
-              {user.role === 'admin' && (
-                <Link 
-                  to="/admin" 
-                  className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
+
+              {user.role === "admin" && (
+                <Link
+                  to="/admin"
+                  className={`nav-link ${
+                    location.pathname === "/admin" ? "active" : ""
+                  }`}
+                  onClick={() => setOpen(false)}
                 >
+                  <i
+                    className="bi bi-shield-lock-fill"
+                    aria-hidden="true"
+                    style={{ color: "var(--g-3)" }}
+                  ></i>
                   Admin
                 </Link>
               )}
 
-              <div className="nav-user">
-                <Link to="/profile" className="nav-link">
+              <div className="nav-user" style={{ alignItems: "center" }}>
+                <Link
+                  to="/profile"
+                  className="nav-link"
+                  onClick={() => setOpen(false)}
+                >
+                  <i
+                    className="bi bi-person-circle"
+                    aria-hidden="true"
+                    style={{ color: "var(--g-3)" }}
+                  ></i>
                   Profile
                 </Link>
-                <button onClick={handleLogout} className="nav-logout">
+                <button
+                  onClick={handleLogout}
+                  className="nav-logout"
+                  aria-label="Logout"
+                >
                   Logout
                 </button>
               </div>
             </>
           ) : (
             <div className="nav-auth">
-              <Link to="/login" className="nav-link">
+              <Link
+                to="/login"
+                className="nav-link"
+                onClick={() => setOpen(false)}
+              >
+                <i
+                  className="bi bi-box-arrow-in-right"
+                  aria-hidden="true"
+                  style={{ color: "var(--g-3)" }}
+                ></i>
                 Login
               </Link>
-              <Link to="/register" className="nav-link register">
+              <Link
+                to="/register"
+                className="nav-link register"
+                onClick={() => setOpen(false)}
+              >
+                <i
+                  className="bi bi-pencil-square"
+                  aria-hidden="true"
+                  style={{ color: "var(--g-pale)" }}
+                ></i>
                 Register
               </Link>
             </div>

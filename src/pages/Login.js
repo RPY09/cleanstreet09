@@ -6,7 +6,7 @@ import "./Auth.css";
 
 const API_URL = "http://localhost:5000/api/auth";
 
-const GOOGLE_API_KEY = ""; // Leave blank if not using external service
+const GOOGLE_API_KEY = ""; // for google api key
 
 const Login = () => {
   // get loginWithToken from context so we update React state after OTP
