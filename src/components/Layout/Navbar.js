@@ -2,18 +2,8 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "./Navbar.css";
-// make sure the image exists at this path (adjust if needed)
-import logoSrc from "../../assets/cleanStreet.png";
 
-/*
-  Updated Navbar:
-  - Uses cleanStreet.png as logo (no leading #)
-  - Modern glass card style using the green palette
-  - Small animations and hover transitions
-  - Mobile toggle (hamburger) that opens a dropdown menu
-  - Uses same font-family as Auth CSS (Inter)
-  - Keeps current routing and permission links
-*/
+import logoSrc from "../../assets/cleanStreet.png";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -32,7 +22,7 @@ const Navbar = () => {
         <Link to="/" className="nav-logo" onClick={() => setOpen(false)}>
           <img src={logoSrc} alt="cleanStreet logo" />
           <span className="brand-text">
-            <span className="title">cleanStreet</span>
+            <span className="title">CleanStreet</span>
             <span className="subtitle">Keep the streets clean</span>
           </span>
         </Link>

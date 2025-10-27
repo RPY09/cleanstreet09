@@ -185,6 +185,7 @@
 }
 
 /* responsive: hamburger for small screens */
+/* HIDE hamburger by default on desktop */
 .nav-toggle {
   display: none;
   background: transparent;
@@ -195,12 +196,12 @@
   transition: background 160ms ease, transform 160ms ease;
 }
 .nav-toggle .bar {
-  display: block;
   width: 20px;
   height: 2px;
   background: var(--g-darkest);
-  margin: 3px 0;
-  transition: transform 220ms ease, opacity 220ms ease;
+  border-radius: 2px;
+  transition: transform 220ms ease, opacity 220ms ease, background 160ms ease;
+  display: block;
 }
 
 /* tiny animation on logo hover */
@@ -216,9 +217,19 @@
   .nav-menu {
     gap: 10px;
   }
+  /* SHOW the hamburger on small screens and stack bars vertically */
   .nav-toggle {
     display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
   }
+  .nav-toggle .bar {
+    width: 22px;
+    height: 2px;
+  }
+
   .nav-menu,
   .nav-user,
   .nav-auth {
