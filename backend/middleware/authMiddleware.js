@@ -16,8 +16,6 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Attach user to the request object (excluding password hash)
-      // User model path is correct because it's relative to the backend root (via the route/controller flow)
       req.user = await User.findById(decoded.id).select("-password");
 
       next(); // Proceed to the next middleware or controller

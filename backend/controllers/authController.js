@@ -1,4 +1,4 @@
-// CleanStreet_Team3/backend/controllers/authController.js (COMPLETE AND FINAL CORRECTION)
+
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -245,7 +245,7 @@ exports.verifyOtp = async (req, res) => {
     res.json({
       success: true,
       message: "OTP verified. Login successful.",
-      token: token, // <--- CORRECT: Now defined locally
+      token: token, 
       user: {
         id: user._id,
         name: user.name,

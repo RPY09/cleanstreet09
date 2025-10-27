@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     loading,
     updateProfile,
-    loginWithToken, // exposed so external flows (OTP verify) can set auth state
+    loginWithToken,
   };
 
   return (
