@@ -76,7 +76,6 @@ body,
   display: flex;
   flex-direction: column;
   color: var(--text-on-light);
-  /* use a subtle card fill: very light pale with slight tint */
   background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
   overflow: hidden;
   border: 1px solid rgba(5, 31, 32, 0.06);
