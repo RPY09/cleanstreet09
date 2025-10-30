@@ -1,35 +1,56 @@
+/* --- Global Page Styling --- */
 .report-issue-page {
-  padding: 2rem 0;
+  padding: 6rem 0 0 0;
   min-height: calc(100vh - 70px);
+  background: linear-gradient(to bottom, #005347, #1B1B1B);
 }
 
+/* --- Header Styling --- */
 .report-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .report-header h1 {
   font-size: 2.5rem;
-  color: #333;
+  color: #ffffff;
   margin-bottom: 0.5rem;
 }
 
 .report-header p {
   font-size: 1.1rem;
-  color: #666;
+  color: #f0f0f0;
 }
 
+/* --- Form Wrapper --- */
 .report-form {
-  max-width: 800px;
   margin: 0 auto;
 }
 
-.form-section {
-  background: white;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.report-issue-page .container {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+/* --- 2-Column Grid Layout --- */
+.report-content-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 2rem;
   margin-bottom: 2rem;
+}
+
+/* --- Card Styling --- */
+.form-section {
+  background: linear-gradient(to bottom, #D3F1DE, #81B79D);
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0;
   border: 1px solid #e9ecef;
 }
 
@@ -37,57 +58,183 @@
   color: #333;
   margin-bottom: 1.5rem;
   font-size: 1.25rem;
-  border-bottom: 2px solid #007bff;
+  border-bottom: 2px solid #1B1B1B;
   padding-bottom: 0.5rem;
 }
 
+/* --- Form Element Styling --- */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-/* src/pages/ReportIssue.css (Add this) */
-.map-placeholder {
-  height: 400px; /* Required height for OpenLayers to render */
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.map-placeholder p {
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
-.form-actions {
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.25rem;
+}
+
+.form-label {
+  margin-bottom: 0rem;
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.35rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+/* --- Custom File Input --- */
+.custom-file-upload {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ced4da;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.file-name-display {
+  padding: 0.35rem 0.75rem;
+  color: #6c757d;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+
+.btn-upload {
+  background-color: #6d9b85;
+  color: white;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  margin-left: auto;
+  flex-shrink: 0;
+  border-radius: 0 4px 4px 0;
+  transition: background-color 0.2s;
+}
+
+.btn-upload:hover {
+  background-color: #1B1B1B;
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+/* Image preview styling */
+.image-preview-container {
+  margin-top: 1rem;
+  max-width: 200px;
+}
+
+.image-preview-container img {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+/* --- Map Specific Styling --- */
+.map-placeholder {
+  width: 100%;
+  height: 350px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+
+.map-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-card .map-placeholder {
+  flex-grow: 1;
+  height: auto;
+  min-height: 350px;
+}
+
+.map-loading {
+  padding: 20px;
   text-align: center;
-  margin-top: 2rem;
+  color: #666;
 }
 
-.form-actions .btn {
+.location-selected-text {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #007bff;
+}
+
+/* --- Submit Button Styling --- */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0;
+}
+
+.form-actions .btn-primary {
   min-width: 200px;
-  padding: 1rem 2rem;
+  padding: 0.75rem 2rem;
   font-size: 1.1rem;
+  font-weight: bold;
+  background: #646464 ;
+  border-color: #16a085;
+  color: white;
+  border-radius: 5px;
+  transition: background-color 0.2s;
+  margin-bottom: 2rem;
+
 }
 
+.form-actions .btn-primary:hover {
+  background-color: #138d75;
+  border-color: #138d75;
+}
+
+.form-actions .btn-primary:disabled {
+  background-color: #95a5a6;
+  border-color: #95a5a6;
+}
+
+/* --- Not Authorized Page --- */
 .not-authorized {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 4rem 2rem; 
   background: white;
   border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.not-authorized h2 {
   color: #333;
-  margin-bottom: 1rem;
 }
 
-.not-authorized p {
-  color: #666;
-  font-size: 1.1rem;
+/* --- Responsive Media Query --- */
+@media (max-width: 992px) {
+  .report-content-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -102,13 +249,14 @@
   .form-row {
     grid-template-columns: 1fr;
     gap: 0;
+    margin-bottom: 0;
+  }
+
+  .form-row .form-group {
+    margin-bottom: 0.5rem;
   }
 
   .form-section {
-    padding: 1.5rem;
-  }
-
-  .map-placeholder {
-    padding: 2rem 1rem;
+    padding: 0.5rem;
   }
 }
