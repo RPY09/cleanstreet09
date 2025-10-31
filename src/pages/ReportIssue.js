@@ -1,11 +1,9 @@
-// src/pages/ReportIssue.js
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ReportIssue.css";
 import "ol/ol.css";
 
-// Access SweetAlert2 from window (loaded via CDN)
 const Swal = window.Swal;
 
 // OpenLayers Imports
