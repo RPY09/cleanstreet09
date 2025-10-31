@@ -1,124 +1,222 @@
+/* Import Bootstrap Icons */
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
+
+:root {
+  --g-darkest: #051f20;
+  --g-2: #0b2b26;
+  --g-3: #163832;
+  --g-4: #235347;
+  --g-accent: #8eb69b;
+  --g-pale: #daf1de;
+  --card-shadow: 0 18px 50px rgba(5, 31, 32, 0.45);
+  --card-radius: 18px;
+  --text-on-light: #07221f;
+  --muted: rgba(7, 34, 31, 0.55);
+}
+
 /* --- Global Page Styling --- */
 .report-issue-page {
-  padding: 6rem 0 0 0;
-  min-height: calc(100vh - 70px);
-  background: linear-gradient(to bottom, #005347, #1B1B1B);
+  padding: 70px 0 0 0;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(-180deg, var(--g-4), var(--g-darkest));
+  display: flex;
+  flex-direction: column;
 }
 
 /* --- Header Styling --- */
 .report-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  padding: 0.75rem 0 0.5rem;
+  flex-shrink: 0;
 }
 
 .report-header h1 {
-  font-size: 2.5rem;
-  color: #ffffff;
-  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  color: var(--g-pale);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.report-header h1 i {
+  font-size: 1.5rem;
 }
 
 .report-header p {
-  font-size: 1.1rem;
-  color: #f0f0f0;
+  font-size: 0.9rem;
+  color: var(--g-accent);
 }
 
-/* --- Form Wrapper --- */
-.report-form {
-  margin: 0 auto;
-}
-
+/* --- Container --- */
 .report-issue-page .container {
   background: transparent;
   border: none;
   box-shadow: none;
-  padding: 0;
-  max-width: 1250px;
+  padding: 0 1rem 0.75rem;
+  max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* --- 2-Column Grid Layout --- */
 .report-content-grid {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: 2rem;
-  margin-bottom: 2rem;
+  gap: 1rem;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* --- Card Styling --- */
 .form-section {
-  background: linear-gradient(to bottom, #D3F1DE, #81B79D);
+  background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
   padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 0;
-  border: 1px solid #e9ecef;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(5, 31, 32, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .form-section h3 {
-  color: #333;
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-  border-bottom: 2px solid #1B1B1B;
+  color: var(--g-darkest);
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  border-bottom: 2px solid var(--g-3);
   padding-bottom: 0.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.form-section h3 i {
+  font-size: 1.2rem;
+  color: var(--g-4);
+}
+
+/* --- Form Scrollable Content --- */
+.report-form {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  padding-right: 0.5rem;
+  min-height: 0;
+}
+
+/* Custom scrollbar for form */
+.report-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.report-form::-webkit-scrollbar-track {
+  background: rgba(5, 31, 32, 0.1);
+  border-radius: 3px;
+}
+
+.report-form::-webkit-scrollbar-thumb {
+  background: var(--g-3);
+  border-radius: 3px;
+}
+
+.report-form::-webkit-scrollbar-thumb:hover {
+  background: var(--g-4);
 }
 
 /* --- Form Element Styling --- */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .form-label {
-  margin-bottom: 0rem;
-  font-weight: 500;
-  color: #495057;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  color: var(--g-3);
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 2px;
+}
+
+.form-label i {
+  font-size: 0.9rem;
+  color: var(--g-4);
 }
 
 .form-control {
   width: 100%;
-  padding: 0.35rem 0.75rem;
+  padding: 12px 16px 12px 40px;
   font-size: 1rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #e9ecef;
-  border: 1px solid #ced4da;
-  border-radius: 5px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  line-height: 1.4;
+  color: var(--text-on-light);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(6, 34, 31, 0.08);
+  border-radius: 10px;
+  transition: box-shadow 0.18s, border-color 0.18s;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
-  border-color: #80bdff;
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  border-color: var(--g-3);
+  box-shadow: 0 6px 20px rgba(22, 56, 50, 0.08);
+  outline: none;
+}
+
+.form-control::placeholder {
+  color: rgba(5, 31, 32, 0.28);
 }
 
 textarea.form-control {
   resize: vertical;
+  min-height: 70px;
+  max-height: 120px;
+  font-family: inherit;
+  padding: 12px 16px;
+}
+
+select.form-control {
+  padding: 12px 16px;
 }
 
 /* --- Custom File Input --- */
 .custom-file-upload {
   display: flex;
   align-items: center;
-  border: 1px solid #ced4da;
-  background-color: #e9ecef;
-  border-radius: 5px;
+  border: 1px solid rgba(6, 34, 31, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
   overflow: hidden;
+  height: 48px;
 }
 
 .file-name-display {
-  padding: 0.35rem 0.75rem;
-  color: #6c757d;
-  font-size: 1rem;
+  padding: 12px 16px;
+  color: rgba(5, 31, 32, 0.55);
+  font-size: 0.95rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -126,137 +224,278 @@ textarea.form-control {
 }
 
 .btn-upload {
-  background-color: #6d9b85;
-  color: white;
-  padding: 0.35rem 0.75rem;
+  background: var(--g-accent);
+  color: var(--g-darkest);
+  padding: 0 16px;
+  height: 48px;
   cursor: pointer;
   margin-left: auto;
   flex-shrink: 0;
-  border-radius: 0 4px 4px 0;
-  transition: background-color 0.2s;
+  border-radius: 0 10px 10px 0;
+  transition: background 0.18s, transform 0.12s;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .btn-upload:hover {
-  background-color: #1B1B1B;
+  background: var(--g-3);
+  color: var(--g-pale);
+}
+
+.btn-upload i {
+  font-size: 1rem;
 }
 
 .file-input-hidden {
   display: none;
 }
 
-/* Image preview styling */
+/* --- Image Preview & Submit Side by Side --- */
+.form-bottom-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(5, 31, 32, 0.1);
+  flex-shrink: 0;
+}
+
+/* Only show preview container when image exists */
 .image-preview-container {
-  margin-top: 1rem;
-  max-width: 200px;
+  width: 100px;
+  height: 100px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--g-3);
+  background-color: rgba(255, 255, 255, 0.5);
+  display: none;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(5, 31, 32, 0.15);
+}
+
+.image-preview-container.has-image {
+  display: block;
 }
 
 .image-preview-container img {
   width: 100%;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* --- Map Specific Styling --- */
-.map-placeholder {
-  width: 100%;
-  height: 350px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  overflow: hidden;
-}
-
 .map-card {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.map-card .map-placeholder {
-  flex-grow: 1;
-  height: auto;
-  min-height: 350px;
-}
-
-.map-loading {
-  padding: 20px;
-  text-align: center;
-  color: #666;
+.map-placeholder {
+  flex: 1;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(5, 31, 32, 0.1);
+  overflow: hidden;
+  min-height: 0;
+  box-shadow: 0 4px 12px rgba(5, 31, 32, 0.1);
 }
 
 .location-selected-text {
-  margin-top: 10px;
-  font-size: 0.9em;
-  color: #007bff;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--g-darkest);
+  font-weight: 600;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-/* --- Submit Button Styling --- */
+.location-selected-text i {
+  font-size: 1rem;
+  color: var(--g-4);
+}
+
+/* --- Submit Button Styling (Match Auth Button) --- */
 .form-actions {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 0;
+  flex: 1;
 }
 
-.form-actions .btn-primary {
-  min-width: 200px;
-  padding: 0.75rem 2rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  background: #646464 ;
-  border-color: #16a085;
-  color: white;
-  border-radius: 5px;
-  transition: background-color 0.2s;
-  margin-bottom: 2rem;
-
+.btn-primary {
+  width: 100%;
+  max-width: 250px;
+  padding: 0 1.5rem;
+  height: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--g-3), var(--g-4));
+  color: var(--g-pale);
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(5, 31, 32, 0.18);
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.form-actions .btn-primary:hover {
-  background-color: #138d75;
-  border-color: #138d75;
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(90deg, var(--g-2), var(--g-darkest));
+  color: var(--g-pale);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(5, 31, 32, 0.25);
 }
 
-.form-actions .btn-primary:disabled {
-  background-color: #95a5a6;
-  border-color: #95a5a6;
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: default;
+  box-shadow: none;
+}
+
+.btn-primary i {
+  font-size: 1rem;
+}
+
+/* Spinning animation for loading icon */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
 /* --- Not Authorized Page --- */
 .not-authorized {
   text-align: center;
-  padding: 4rem 2rem; 
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  color: #333;
+  padding: 3rem 2rem;
+  background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  color: var(--text-on-light);
+  margin: auto;
+  max-width: 600px;
+}
+
+.not-authorized h2 {
+  margin-bottom: 1rem;
+  color: var(--g-darkest);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.not-authorized h2 i {
+  font-size: 1.75rem;
+  color: var(--g-4);
+}
+
+.not-authorized p {
+  color: var(--muted);
 }
 
 /* --- Responsive Media Query --- */
+@media (max-width: 1200px) {
+  .report-content-grid {
+    gap: 0.75rem;
+  }
+
+  .form-section {
+    padding: 0.85rem;
+  }
+}
+
 @media (max-width: 992px) {
   .report-content-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .form-section:first-child {
+    max-height: 50vh;
   }
 }
 
 @media (max-width: 768px) {
   .report-issue-page {
-    padding: 1rem 0;
+    padding: 60px 0 0 0;
   }
 
   .report-header h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
+  }
+
+  .report-header h1 i {
+    font-size: 1.3rem;
+  }
+
+  .report-header p {
+    font-size: 0.85rem;
   }
 
   .form-row {
     grid-template-columns: 1fr;
-    gap: 0;
-    margin-bottom: 0;
-  }
-
-  .form-row .form-group {
-    margin-bottom: 0.5rem;
   }
 
   .form-section {
-    padding: 0.5rem;
+    padding: 0.75rem;
   }
+
+  .form-section h3 {
+    font-size: 1rem;
+  }
+
+  .form-control {
+    height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .btn-upload {
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-primary {
+    height: 46px;
+    max-width: 100%;
+  }
+
+  /* Stack preview and button on mobile if preview exists */
+  .form-bottom-section {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .image-preview-container {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+/* Ensure OpenLayers controls are visible */
+.ol-zoom {
+  top: 0.5rem;
+  left: auto;
+  right: 0.5rem;
+}
+
+.ol-attribution {
+  font-size: 0.7rem;
 }

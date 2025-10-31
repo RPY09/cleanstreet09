@@ -1,9 +1,12 @@
-// src/pages/ReportIssue.js (Updated for new layout)
+// src/pages/ReportIssue.js
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ReportIssue.css";
-import 'ol/ol.css'; 
+import "ol/ol.css";
+
+// Access SweetAlert2 from window (loaded via CDN)
+const Swal = window.Swal;
 
 // OpenLayers Imports
 import Map from "ol/Map";
@@ -25,42 +28,45 @@ const API_URL = "http://localhost:5000/api/issues";
 
 const ReportIssue = () => {
   const { user } = useAuth();
-  const mapElement = useRef(); 
+  const mapElement = useRef();
 
   // Map state management
   const [map, setMap] = useState(null);
   const [markerSource] = useState(new VectorSource());
-  const [selectedLocation, setSelectedLocation] = useState(null); 
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   const [formData, setFormData] = useState({
     title: "",
     issueType: "",
     priority: "medium",
-    address: "", // This will be updated by the map click
+    address: "",
     landmark: "",
     description: "",
   });
+
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const issueTypes = [
-    { value: "pothole", label: "Pothole" },
-    { value: "garbage", label: "Garbage Dump" },
-    { value: "streetlight", label: "Broken Streetlight" },
-    { value: "water_leak", label: "Water Leak" },
-    { value: "other", label: "Other" },
+    { value: "pothole", label: "Pothole", icon: "bi-cone-striped" },
+    { value: "garbage", label: "Garbage Dump", icon: "bi-trash3" },
+    {
+      value: "streetlight",
+      label: "Broken Streetlight",
+      icon: "bi-lightbulb-off",
+    },
+    { value: "water_leak", label: "Water Leak", icon: "bi-droplet" },
+    { value: "other", label: "Other", icon: "bi-exclamation-circle" },
   ];
 
   const priorityLevels = [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
+    { value: "low", label: "Low", icon: "bi-arrow-down-circle" },
+    { value: "medium", label: "Medium", icon: "bi-dash-circle" },
+    { value: "high", label: "High", icon: "bi-arrow-up-circle" },
   ];
 
-  // --- MAP INITIALIZATION AND CLICK HANDLER (No changes here) ---
+  // Initialize map
   useEffect(() => {
     const markerStyle = new Style({
       image: new Icon({
@@ -76,7 +82,7 @@ const ReportIssue = () => {
         new VectorLayer({ source: markerSource, style: markerStyle }),
       ],
       view: new View({
-        center: initialCenter, 
+        center: initialCenter,
         zoom: 12,
       }),
     });
@@ -84,7 +90,7 @@ const ReportIssue = () => {
     setMap(initialMap);
 
     initialMap.on("click", async (evt) => {
-      const coords = toLonLat(evt.coordinate); 
+      const coords = toLonLat(evt.coordinate);
       setSelectedLocation(coords);
 
       markerSource.clear();
@@ -95,7 +101,6 @@ const ReportIssue = () => {
 
       setLoading(true);
       const addressString = await reverseGeocode(coords[0], coords[1]);
-
       setFormData((prev) => ({
         ...prev,
         address: addressString,
@@ -103,10 +108,9 @@ const ReportIssue = () => {
       setLoading(false);
     });
 
-    return () => initialMap.setTarget(undefined); 
+    return () => initialMap.setTarget(undefined);
   }, [markerSource]);
 
-  // --- FORM HANDLERS (handleImageChange is slightly modified) ---
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -125,15 +129,37 @@ const ReportIssue = () => {
     }
   };
 
-  // --- handleSubmit (No changes here) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation with SweetAlert2
+    if (!selectedLocation) {
+      Swal.fire({
+        icon: "warning",
+        title: "Location Required",
+        text: "Please select a location on the map by clicking on it.",
+        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+        color: "#1B1B1B",
+        confirmButtonColor: "#005347",
+      });
+      return;
+    }
+
+    if (!formData.title || !formData.issueType || !formData.description) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Please fill in all required fields.",
+        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+        color: "#1B1B1B",
+        confirmButtonColor: "#005347",
+      });
+      return;
+    }
+
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     const data = new FormData();
-
     Object.keys(formData).forEach((key) => {
       data.append(key, formData[key]);
     });
@@ -142,10 +168,19 @@ const ReportIssue = () => {
       data.append("image", imageFile);
     }
 
-    const token = localStorage.getItem("token");
+    data.append("latitude", selectedLocation[1]);
+    data.append("longitude", selectedLocation[0]);
 
+    const token = localStorage.getItem("token");
     if (!token) {
-      setError("Authorization failed. Please log in again.");
+      Swal.fire({
+        icon: "error",
+        title: "Authorization Failed",
+        text: "Please log in again to submit an issue.",
+        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+        color: "#1B1B1B",
+        confirmButtonColor: "#005347",
+      });
       setLoading(false);
       return;
     }
@@ -158,9 +193,18 @@ const ReportIssue = () => {
         },
       });
 
-      setSuccess(response.data.message || "Issue reported successfully!");
+      Swal.fire({
+        icon: "success",
+        title: "Issue Reported Successfully!",
+        text: "Thank you for making your community better.",
+        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+        color: "#1B1B1B",
+        confirmButtonColor: "#005347",
+        timer: 3000,
+        timerProgressBar: true,
+      });
 
-      // Reset form on success
+      // Reset form
       setFormData({
         title: "",
         issueType: "",
@@ -171,13 +215,21 @@ const ReportIssue = () => {
       });
       setImageFile(null);
       setImagePreview(null);
-      setSelectedLocation(null); 
-      markerSource.clear(); 
+      setSelectedLocation(null);
+      markerSource.clear();
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
         "Failed to connect to server or report issue.";
-      setError(errorMessage);
+
+      Swal.fire({
+        icon: "error",
+        title: "Submission Failed",
+        text: errorMessage,
+        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+        color: "#1B1B1B",
+        confirmButtonColor: "#005347",
+      });
     } finally {
       setLoading(false);
     }
@@ -186,62 +238,61 @@ const ReportIssue = () => {
   if (!user) {
     return (
       <div className="report-issue-page">
-        <div className="container">
-          <div className="not-authorized">
-            <h2>Please log in to report issues</h2>
-            <p>You need to be logged in to submit civic issues.</p>
-          </div>
+        <div className="not-authorized">
+          <h2>
+            <i className="bi bi-lock"></i> You need to be logged in to submit
+            civic issues.
+          </h2>
+          <p>Help make your community cleaner and safer by reporting issues.</p>
         </div>
       </div>
     );
   }
 
-  // --- FINAL JSX RETURN (UPDATED STRUCTURE) ---
   return (
     <div className="report-issue-page">
       <div className="container">
         <div className="report-header">
-          <h1>Report Issue</h1>
-          <p>Help make your community cleaner and safer by reporting issues</p>
+          <h1>
+            <i className="bi bi-megaphone"></i> Report Civic Issue
+          </h1>
+          <p>Help make your community cleaner and safer</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
-        <form onSubmit={handleSubmit} className="report-form">
-          
-          {/* New 2-Column Grid Wrapper */}
-          <div className="report-content-grid">
-            
-            {/* --- Left Card: Issue Details --- */}
-            <div className="form-section details-card">
-              <h3>Issue Details</h3>
-
+        <div className="report-content-grid">
+          {/* Form Section */}
+          <div className="form-section">
+            <h3>
+              <i className="bi bi-card-checklist"></i> Issue Details
+            </h3>
+            <form onSubmit={handleSubmit} className="report-form">
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="title" className="form-label">Issue Title</label>
+                  <label className="form-label">
+                    <i className="bi bi-text-left"></i> Issue Title *
+                  </label>
                   <input
                     type="text"
-                    id="title"
-                    name="title"
                     className="form-control"
-                    placeholder="Brief description of the issue"
+                    name="title"
                     value={formData.title}
                     onChange={handleChange}
+                    placeholder="Brief title for the issue"
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="issueType" className="form-label">Issue Type</label>
+                  <label className="form-label">
+                    <i className="bi bi-tags"></i> Issue Type *
+                  </label>
                   <select
-                    id="issueType"
-                    name="issueType"
                     className="form-control"
+                    name="issueType"
                     value={formData.issueType}
                     onChange={handleChange}
                     required
                   >
-                    <option value="">Select issue type</option>
+                    <option value="">Select type...</option>
                     {issueTypes.map((type) => (
                       <option key={type.value} value={type.value}>
                         {type.label}
@@ -253,13 +304,15 @@ const ReportIssue = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="priority" className="form-label">Priority Level</label>
+                  <label className="form-label">
+                    <i className="bi bi-speedometer2"></i> Priority Level *
+                  </label>
                   <select
-                    id="priority"
-                    name="priority"
                     className="form-control"
+                    name="priority"
                     value={formData.priority}
                     onChange={handleChange}
+                    required
                   >
                     {priorityLevels.map((level) => (
                       <option key={level.value} value={level.value}>
@@ -269,107 +322,119 @@ const ReportIssue = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="address" className="form-label">Address (from Map)</label>
+                  <label className="form-label">
+                    <i className="bi bi-signpost-2"></i> Landmark (Optional)
+                  </label>
                   <input
                     type="text"
-                    id="address"
-                    name="address"
                     className="form-control"
-                    placeholder="Click on map to select address"
-                    value={formData.address}
-                    onChange={handleChange} // Allow manual override
-                    required
+                    name="landmark"
+                    value={formData.landmark}
+                    onChange={handleChange}
+                    placeholder="Nearby landmark"
                   />
                 </div>
               </div>
 
-              <div className="form-row">
-                 <div className="form-group">
-                  <label htmlFor="landmark" className="form-label">Nearby Landmark (Optional)</label>
-                  <input
-                    type="text"
-                    id="landmark"
-                    name="landmark"
-                    className="form-control"
-                    placeholder="e.g., Near City Hall"
-                    value={formData.landmark}
-                    onChange={handleChange}
-                  />
-                </div>
-                
-                {/* --- New Custom File Input --- */}
-                <div className="form-group">
-                  <label htmlFor="image" className="form-label">Upload file</label>
-                  <div className="custom-file-upload">
-                    <span className="file-name-display">
-                      {imageFile ? imageFile.name : "Select a file to upload"}
-                    </span>
-                    <label htmlFor="image" className="btn-upload">
-                      Upload File
-                    </label>
-                    <input
-                      type="file"
-                      id="image"
-                      name="image"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="file-input-hidden"
-                    />
-                  </div>
-                </div>
-              </div>
-              
               <div className="form-group">
-                <label htmlFor="description" className="form-label">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
+                <label className="form-label">
+                  <i className="bi bi-geo-alt"></i> Address (Click on map)
+                </label>
+                <input
+                  type="text"
                   className="form-control"
-                  rows="4" // Shortened for new layout
-                  placeholder="Describe the issue in detail..."
-                  value={formData.description}
-                  onChange={handleChange}
-                  required
+                  name="address"
+                  value={formData.address}
+                  readOnly
+                  placeholder="Select location on map"
                 />
               </div>
 
-              {imagePreview && (
-                <div className="image-preview-container">
-                  <img src={imagePreview} alt="Issue Preview" />
-                </div>
-              )}
-              
-            </div>
-            
-            {/* --- Right Card: Map --- */}
-            <div className="form-section map-card">
-              <h3>Location on Map</h3>
-              <div ref={mapElement} className="map-placeholder">
-                {loading && (
-                  <div className="map-loading">
-                    Retrieving address...
-                  </div>
-                )}
+              <div className="form-group">
+                <label className="form-label">
+                  <i className="bi bi-pencil-square"></i> Description *
+                </label>
+                <textarea
+                  className="form-control"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="3"
+                  placeholder="Describe the issue in detail..."
+                  required
+                ></textarea>
               </div>
-              {selectedLocation && (
-                <p className="location-selected-text">
-                  Location Selected: {formData.address}
-                </p>
-              )}
-            </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  <i className="bi bi-image"></i> Upload Image (Optional)
+                </label>
+                <div className="custom-file-upload">
+                  <span className="file-name-display">
+                    {imageFile ? imageFile.name : "No file chosen"}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-upload"
+                    onClick={() => document.getElementById("imageFile").click()}
+                  >
+                    <i className="bi bi-folder2-open"></i> Browse
+                  </button>
+                  <input
+                    type="file"
+                    id="imageFile"
+                    className="file-input-hidden"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                </div>
+              </div>
+
+              {/* Image Preview and Submit Button Side by Side */}
+              <div className="form-bottom-section">
+                {/* Only show preview container when image exists */}
+                <div
+                  className={`image-preview-container ${
+                    imagePreview ? "has-image" : ""
+                  }`}
+                >
+                  {imagePreview && <img src={imagePreview} alt="Preview" />}
+                </div>
+                <div className="form-actions">
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <i className="bi bi-hourglass-split spinning"></i>{" "}
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-send"></i> Submit Issue
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-          
-          {/* --- Submit Button (Moved) --- */}
-          <div className="form-actions">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
-              {loading ? "Submitting..." : "Submit Issue"}
-            </button>
+
+          {/* Map Section */}
+          <div className="form-section map-card">
+            <h3>
+              <i className="bi bi-map"></i> Select Location on Map
+            </h3>
+            <div ref={mapElement} className="map-placeholder"></div>
+            {selectedLocation && (
+              <div className="location-selected-text">
+                <i className="bi bi-pin-map-fill"></i> Location selected
+              </div>
+            )}
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
