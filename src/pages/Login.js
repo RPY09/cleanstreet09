@@ -2,10 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
+import Swal from "sweetalert2";
 import "./Auth.css";
-
-// Access SweetAlert2 from window (loaded via CDN)
-const Swal = window.Swal;
 
 const API_URL = "http://localhost:5000/api/auth";
 const GOOGLE_API_KEY = ""; // for google api key
@@ -18,7 +16,6 @@ const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -46,15 +43,24 @@ const Login = () => {
   const handleRegChange = (e) =>
     setRegData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
+  // SweetAlert2 helpers
+  const swalError = (title = "Error", text = "") =>
+    Swal.fire({ icon: "error", title, text, confirmButtonColor: "#163832" });
+
+  const swalSuccess = (title = "Success", text = "") =>
+    Swal.fire({ icon: "success", title, text, confirmButtonColor: "#163832" });
+
+  const swalInfo = (title = "Info", text = "") =>
+    Swal.fire({ icon: "info", title, text, confirmButtonColor: "#163832" });
+
   // --- LOGIN SUBMISSION ---
   const submitLogin = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
       if (forgotMode) {
-        // --- OTP VERIFICATION SUBMISSION ---
+        // OTP verification
         const response = await axios.post(`${API_URL}/verify-otp`, {
           email: loginData.email,
           otp: loginData.otp,
@@ -72,84 +78,30 @@ const Login = () => {
             return;
           }
 
-          // Success alert
-          Swal.fire({
-            icon: "success",
-            title: "Password Reset Successfully!",
-            text: "You can now login with your new password.",
-            background:
-              "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-            color: "var(--text-on-light)",
-            confirmButtonColor: "var(--g-3)",
-            timer: 2000,
-            timerProgressBar: true,
-          });
-
-          // Redirect based on role
-          if (user?.role === "admin") {
-            navigate("/admin");
-          } else {
-            navigate("/dashboard");
-          }
+          await swalSuccess("OTP verified", "You have been logged in.");
+          if (user?.role === "admin") navigate("/admin");
+          else navigate("/dashboard");
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Invalid OTP",
-            text: response.data?.message || "Invalid or expired OTP.",
-            background:
-              "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-            color: "var(--text-on-light)",
-            confirmButtonColor: "var(--g-3)",
-          });
-          setError(response.data?.message || "Invalid or expired OTP.");
+          const msg = response.data?.message || "Invalid or expired OTP.";
+          swalError("OTP Error", msg);
         }
       } else {
-        // --- STANDARD PASSWORD LOGIN SUBMISSION ---
+        // Standard password login
         const res = await login(loginData.email, loginData.password);
 
         if (res?.success) {
-          Swal.fire({
-            icon: "success",
-            title: "Login Successful!",
-            text: `Welcome back, ${res.user?.name || "User"}!`,
-            background:
-              "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-            color: "var(--text-on-light)",
-            confirmButtonColor: "var(--g-3)",
-            timer: 1500,
-            timerProgressBar: true,
-            showConfirmButton: false,
-          });
-
-          if (res.user?.role === "admin") {
-            navigate("/admin");
-          } else {
-            navigate("/dashboard");
-          }
+          await swalSuccess("Login successful", "Redirecting...");
+          if (res.user?.role === "admin") navigate("/admin");
+          else navigate("/dashboard");
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Login Failed",
-            text: res?.message || "Invalid credentials.",
-            background:
-              "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-            color: "var(--text-on-light)",
-            confirmButtonColor: "var(--g-3)",
-          });
-          setError(res?.message || "Invalid credentials.");
+          const msg = res?.message || "Invalid credentials.";
+          swalError("Login failed", msg);
         }
       }
     } catch (err) {
       console.error("Login Submission Error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Connection Error",
-        text: "An error occurred during login. Please check your connection and try again.",
-        background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-        color: "var(--text-on-light)",
-        confirmButtonColor: "var(--g-3)",
-      });
-      setError("An error occurred during login (Network or Server Error)");
+      const msg = err.response?.data?.message || "Network or server error.";
+      swalError("Error", msg);
     } finally {
       setLoading(false);
     }
@@ -158,9 +110,7 @@ const Login = () => {
   // --- REGISTRATION SUBMISSION ---
   const submitRegister = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
-
     try {
       const payload = {
         name: regData.fullName,
@@ -170,43 +120,22 @@ const Login = () => {
         location: regData.location,
         password: regData.password,
       };
-
       const res = await register(payload);
-
       if (res?.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Registration Successful!",
-          text: "Your account has been created. Welcome to CleanStreet!",
-          background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-          color: "var(--text-on-light)",
-          confirmButtonColor: "var(--g-3)",
-          timer: 2000,
-          timerProgressBar: true,
-        }).then(() => {
-          navigate("/dashboard");
-        });
+        await swalSuccess(
+          "Account created",
+          "Welcome — redirecting to dashboard..."
+        );
+        navigate("/dashboard");
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Registration Failed",
-          text: res?.message || "Registration failed. Please try again.",
-          background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-          color: "var(--text-on-light)",
-          confirmButtonColor: "var(--g-3)",
-        });
-        setError(res?.message || "Registration failed.");
+        const msg = res?.message || "Registration failed.";
+        swalError("Registration failed", msg);
       }
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Registration Error",
-        text: "An error occurred during registration. Please try again.",
-        background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-        color: "var(--text-on-light)",
-        confirmButtonColor: "var(--g-3)",
-      });
-      setError("An error occurred during registration");
+      console.error("Registration error:", err);
+      const msg =
+        err.response?.data?.message || "Server error during registration.";
+      swalError("Error", msg);
     } finally {
       setLoading(false);
     }
@@ -214,21 +143,11 @@ const Login = () => {
 
   // --- FORGOT PASSWORD: TRIGGER OTP SENDING ---
   const requestOtp = async () => {
-    setError("");
-
     if (!loginData.email) {
-      Swal.fire({
-        icon: "warning",
-        title: "Email Required",
-        text: "Please enter your email to request a reset code.",
-        background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-        color: "var(--text-on-light)",
-        confirmButtonColor: "var(--g-3)",
-      });
-      setError("Please enter your email to request a reset code.");
+      const msg = "Please enter your email to request a reset code.";
+      swalError("Missing email", msg);
       return;
     }
-
     setLoading(true);
 
     try {
@@ -237,36 +156,19 @@ const Login = () => {
       });
 
       if (response.data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "OTP Sent!",
-          text: response.data.message || "Check your email for the reset code.",
-          background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-          color: "var(--text-on-light)",
-          confirmButtonColor: "var(--g-3)",
-        });
+        swalInfo(
+          "OTP sent",
+          response.data.message || "If an account exists, an OTP has been sent."
+        );
         setForgotMode(true);
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Failed to Send OTP",
-          text: response.data.message || "Failed to request reset code.",
-          background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-          color: "var(--text-on-light)",
-          confirmButtonColor: "var(--g-3)",
-        });
-        setError(response.data.message || "Failed to request reset code.");
+        const msg = response.data.message || "Failed to request reset code.";
+        swalError("Request failed", msg);
       }
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Connection Error",
-        text: "Could not connect to server to request reset code.",
-        background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-        color: "var(--text-on-light)",
-        confirmButtonColor: "var(--g-3)",
-      });
-      setError("Could not connect to server to request reset code.");
+      console.error("requestOtp error:", err);
+      const msg = "Could not connect to server to request reset code.";
+      swalError("Network error", msg);
     } finally {
       setLoading(false);
     }
@@ -274,21 +176,11 @@ const Login = () => {
 
   // --- GEOLOCATION: GET CURRENT LOCATION ---
   const fillCurrentLocation = () => {
-    setError("");
-
     if (!navigator.geolocation) {
-      Swal.fire({
-        icon: "error",
-        title: "Geolocation Not Supported",
-        text: "Geolocation is not supported by your browser.",
-        background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-        color: "var(--text-on-light)",
-        confirmButtonColor: "var(--g-3)",
-      });
-      setError("Geolocation is not supported by your browser.");
+      const msg = "Geolocation is not supported by your browser.";
+      swalError("Geolocation", msg);
       return;
     }
-
     setLoading(true);
 
     navigator.geolocation.getCurrentPosition(
@@ -302,277 +194,292 @@ const Login = () => {
             "https://maps.googleapis.com/maps/api/geocode/json";
           try {
             const response = await axios.get(REVERSE_GEOCODE_URL, {
-              params: {
-                latlng: `${lat},${lon}`,
-                key: GOOGLE_API_KEY,
-              },
+              params: { latlng: `${lat},${lon}`, key: GOOGLE_API_KEY },
             });
-
             if (response.data.results && response.data.results.length > 0) {
               locationString = response.data.results[0].formatted_address;
             }
           } catch (apiError) {
             console.error("Reverse Geocoding Failed:", apiError);
-            Swal.fire({
-              icon: "warning",
-              title: "Location Found",
-              text: "Location found, but failed to get street address. Using coordinates.",
-              background:
-                "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-              color: "var(--text-on-light)",
-              confirmButtonColor: "var(--g-3)",
-            });
+            const msg =
+              "Location found, but failed to get street address. Using coordinates.";
+            swalInfo("Location", msg);
           }
         }
 
         setRegData((p) => ({ ...p, location: locationString }));
-
-        Swal.fire({
-          icon: "success",
-          title: "Location Retrieved",
-          text: "Your current location has been filled in.",
-          background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-          color: "var(--text-on-light)",
-          confirmButtonColor: "var(--g-3)",
-          timer: 1500,
-          timerProgressBar: true,
-        });
-
         setLoading(false);
       },
       (err) => {
-        Swal.fire({
-          icon: "error",
-          title: "Location Error",
-          text: "Unable to get location: " + err.message,
-          background: "linear-gradient(180deg, var(--g-pale), var(--g-accent))",
-          color: "var(--text-on-light)",
-          confirmButtonColor: "var(--g-3)",
-        });
-        setError("Unable to get location: " + err.message);
+        const msg = "Unable to get location: " + err.message;
+        swalError("Location error", msg);
         setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
-  // --- TOGGLES ---
   const toggleForgotMode = () => {
-    if (forgotMode) {
-      setForgotMode(false);
-    } else {
-      requestOtp();
-    }
+    if (forgotMode) setForgotMode(false);
+    else requestOtp();
   };
 
   const flipToRegister = () => {
     setIsRegister(true);
     setForgotMode(false);
-    setError("");
   };
-
   const flipToLogin = () => {
     setIsRegister(false);
     setForgotMode(false);
-    setError("");
   };
 
   return (
     <div className="auth-page">
       <div className="auth-container">
-        <div className={`card-3d ${isRegister ? "flipped" : ""}`}>
-          {/* LOGIN SIDE */}
-          <div className="card-face card-front">
-            <div className="auth-card">
-              <div className="logo-section">
-                <h2 className="logo-text">🧹 CleanStreet</h2>
-                <p className="tagline">Keep the streets clean</p>
-              </div>
+        <div className={`auth-card-3d ${isRegister ? "flipped" : ""}`}>
+          {/* FRONT - LOGIN */}
+          <div className="auth-face auth-face-front">
+            <div className="auth-header">
+              <h1>Login to CleanStreet</h1>
+              <h2>Join us and start cleaning up the streets!</h2>
+            </div>
+            <div className="cleanicon" />
 
-              <h3 className="form-title">
-                {forgotMode ? "Reset Password" : "Login"}
-              </h3>
-
-              {error && <div className="error-message">{error}</div>}
-
-              <form onSubmit={submitLogin}>
-                <div className="form-group">
-                  <label>Email</label>
+            <form className="auth-form face-font" onSubmit={submitLogin}>
+              <div className="forms-group">
+                <label className="forms-label">Email</label>
+                <div className="input-group">
+                  <i className="bi bi-envelope" />
                   <input
-                    type="email"
                     name="email"
+                    type="email"
+                    className="forms-control"
+                    placeholder="your.email@example.com"
                     value={loginData.email}
                     onChange={handleLoginChange}
-                    placeholder="you@example.com"
                     required
                   />
                 </div>
+              </div>
 
-                {forgotMode ? (
-                  <div className="form-group">
-                    <label>Enter OTP</label>
+              {!forgotMode && (
+                <div className="forms-group">
+                  <label className="forms-label">Password</label>
+                  <div className="input-group">
+                    <i className="bi bi-lock" />
                     <input
-                      type="text"
-                      name="otp"
-                      value={loginData.otp}
-                      onChange={handleLoginChange}
-                      placeholder="6-digit code"
-                      required
-                    />
-                  </div>
-                ) : (
-                  <div className="form-group">
-                    <label>Password</label>
-                    <input
-                      type="password"
                       name="password"
+                      type="password"
+                      className="forms-control"
+                      placeholder="Enter your password"
                       value={loginData.password}
                       onChange={handleLoginChange}
-                      placeholder="••••••••"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {forgotMode && (
+                <div className="forms-group">
+                  <label className="forms-label">OTP</label>
+                  <div className="input-group">
+                    <i className="bi bi-key" />
+                    <input
+                      name="otp"
+                      type="text"
+                      className="forms-control"
+                      placeholder="Enter the OTP sent to your email"
+                      value={loginData.otp}
+                      onChange={handleLoginChange}
                       required
                     />
                   </div>
-                )}
+                </div>
+              )}
 
-                <button type="submit" className="btn-submit" disabled={loading}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <button
+                  type="button"
+                  className="link-btn small"
+                  onClick={toggleForgotMode}
+                  disabled={loading}
+                >
+                  {forgotMode ? "Back to password" : "Forgot password?"}
+                </button>
+
+                <button
+                  type="button"
+                  className="link-btn small"
+                  onClick={flipToRegister}
+                  disabled={loading}
+                >
+                  New here? Register
+                </button>
+              </div>
+
+              <div className="forms-actions">
+                <button
+                  type="submit"
+                  className="btn auth-btn-primary"
+                  disabled={loading}
+                >
                   {loading
-                    ? "Please wait..."
+                    ? forgotMode
+                      ? "Verifying..."
+                      : "Logging in..."
                     : forgotMode
                     ? "Verify OTP"
                     : "Login"}
                 </button>
-
-                <div className="link-row">
-                  <button
-                    type="button"
-                    className="link-btn"
-                    onClick={toggleForgotMode}
-                  >
-                    {forgotMode ? "← Back to login" : "Forgot password?"}
-                  </button>
-                </div>
-              </form>
-
-              <div className="card-footer">
-                <p>
-                  Don't have an account?{" "}
-                  <button className="flip-link" onClick={flipToRegister}>
-                    Sign up
-                  </button>
-                </p>
               </div>
-            </div>
+            </form>
           </div>
 
-          {/* REGISTER SIDE */}
-          <div className="card-face card-back">
-            <div className="auth-card">
-              <div className="logo-section">
-                <h2 className="logo-text">🧹 CleanStreet</h2>
-                <p className="tagline">Join the community</p>
-              </div>
+          {/* BACK - REGISTER */}
+          <div className="auth-face auth-face-back">
+            <div className="auth-header">
+              <h1>Create Account</h1>
+              <h2>Join us and start cleaning up the streets!</h2>
+            </div>
 
-              <h3 className="form-title">Create Account</h3>
-
-              {error && <div className="error-message">{error}</div>}
-
-              <form onSubmit={submitRegister}>
-                <div className="form-group">
-                  <label>Full Name</label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={regData.fullName}
-                    onChange={handleRegChange}
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Username</label>
-                  <input
-                    type="text"
-                    name="username"
-                    value={regData.username}
-                    onChange={handleRegChange}
-                    placeholder="johndoe"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={regData.email}
-                    onChange={handleRegChange}
-                    placeholder="you@example.com"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Phone (optional)</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={regData.phone}
-                    onChange={handleRegChange}
-                    placeholder="+91 1234567890"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Location</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
+            <form className="auth-form" onSubmit={submitRegister}>
+              <div className="forms-row two-columns">
+                <div className="forms-col">
+                  <label className="forms-label">Full Name</label>
+                  <div className="input-group">
+                    <i className="bi bi-person" />
                     <input
+                      name="fullName"
                       type="text"
-                      name="location"
-                      value={regData.location}
+                      className="forms-control"
+                      placeholder="your name"
+                      value={regData.fullName}
                       onChange={handleRegChange}
-                      placeholder="City, State"
                       required
-                      style={{ flex: 1 }}
                     />
-                    <button
-                      type="button"
-                      className="btn-location"
-                      onClick={fillCurrentLocation}
-                      disabled={loading}
-                    >
-                      📍
-                    </button>
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Password</label>
+                <div className="forms-col">
+                  <label className="forms-label">Username</label>
+                  <div className="input-group">
+                    <i className="bi bi-at" />
+                    <input
+                      name="username"
+                      type="text"
+                      className="forms-control"
+                      placeholder="your username"
+                      value={regData.username}
+                      onChange={handleRegChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="forms-group">
+                <label className="forms-label">Email</label>
+                <div className="input-group">
+                  <i className="bi bi-envelope" />
                   <input
-                    type="password"
-                    name="password"
-                    value={regData.password}
+                    name="email"
+                    type="email"
+                    className="forms-control"
+                    placeholder="your.email@example.com"
+                    value={regData.email}
                     onChange={handleRegChange}
-                    placeholder="••••••••"
                     required
                   />
                 </div>
-
-                <button type="submit" className="btn-submit" disabled={loading}>
-                  {loading ? "Creating..." : "Sign Up"}
-                </button>
-              </form>
-
-              <div className="card-footer">
-                <p>
-                  Already have an account?{" "}
-                  <button className="flip-link" onClick={flipToLogin}>
-                    Login
-                  </button>
-                </p>
               </div>
-            </div>
+
+              <div className="forms-row two-columns">
+                <div className="forms-col">
+                  <label className="forms-label">Phone (Optional)</label>
+                  <div className="input-group">
+                    <i className="bi bi-telephone" />
+                    <input
+                      name="phone"
+                      type="tel"
+                      className="forms-control"
+                      placeholder="e.g., +91 999 123 4567"
+                      value={regData.phone}
+                      onChange={handleRegChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="forms-col">
+                  <label className="forms-label">Location</label>
+                  <div className="location-row">
+                    <i className="bi bi-geo-alt" />
+                    <input
+                      name="location"
+                      type="text"
+                      className="forms-control location-input"
+                      placeholder="Enter your city or click to locate"
+                      value={regData.location}
+                      onChange={handleRegChange}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="location-btn"
+                      onClick={fillCurrentLocation}
+                      disabled={loading}
+                      title="Use my location"
+                    >
+                      <i className="bi bi-geo-fill" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="forms-group">
+                <label className="forms-label">Password</label>
+                <div className="input-group">
+                  <i className="bi bi-lock" />
+                  <input
+                    name="password"
+                    type="password"
+                    className="forms-control"
+                    placeholder="Create a strong password"
+                    value={regData.password}
+                    onChange={handleRegChange}
+                    required
+                    minLength={6}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <button
+                  type="button"
+                  className="link-btn small"
+                  onClick={flipToLogin}
+                >
+                  Already have an account? Login
+                </button>
+              </div>
+
+              <div className="forms-actions">
+                <button
+                  type="submit"
+                  className="btn auth-btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? "Creating account..." : "Register"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

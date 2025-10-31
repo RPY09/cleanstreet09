@@ -21,6 +21,14 @@
   --card-radius: 18px;
   --text-on-light: #07221f;
   --muted: rgba(7, 34, 31, 0.55);
+
+  --alert-success-bg: #e6f8ef; /* very light green */
+  --alert-success-border: #8eb69b; /* accent */
+  --alert-success-text: #0b513f; /* dark green text */
+
+  --alert-error-bg: #fdecea; /* light red (kept) */
+  --alert-error-border: #e39a90;
+  --alert-error-text: #7a1b1b;
 }
 
 /* reset / base */
@@ -186,10 +194,21 @@ body,
   border-radius: 10px;
   margin-bottom: 12px;
   font-size: 0.95rem;
+  box-sizing: border-box;
 }
+
+/* Success (uses green palette consistent with Auth and ReportIssue) */
+.alert-success {
+  background: var(--alert-success-bg);
+  color: var(--alert-success-text);
+  border: 1px solid var(--alert-success-border);
+}
+
+/* Error (slightly tuned border color for better contrast) */
 .alert-error {
-  background: #f2d1cd;
-  color: #7a1b1b;
+  background: var(--alert-error-bg);
+  color: var(--alert-error-text);
+  border: 1px solid var(--alert-error-border);
 }
 
 /* form */
