@@ -2,9 +2,17 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const cloudinary = require("cloudinary").v2;
 const authRoutes = require("./routes/authRoutes");
+const issueRoutes = require("./routes/issueRoutes");
 
 dotenv.config(); // Load environment variables from .env
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const app = express();
 
@@ -12,6 +20,7 @@ const app = express();
 app.use(cors()); // Allows frontend (on different port) to access backend
 app.use(express.json()); // Allows parsing of JSON request body
 app.use("/api/auth", authRoutes);
+app.use("/api/issues", issueRoutes);
 
 // Database Connection
 const connectDB = async () => {
