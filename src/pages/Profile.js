@@ -1,10 +1,10 @@
-// src/pages/Profile.js (FINAL, ERROR-FREE CODE)
+
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "./Profile.css";
 
 const Profile = () => {
-  // Pull necessary state/functions from context
+
   const { user, updateProfile, loading } = useAuth();
 
   // State Management
@@ -13,8 +13,7 @@ const Profile = () => {
   const [updateError, setUpdateError] = useState("");
   const [updateLoading, setUpdateLoading] = useState(false);
 
-  // Initialize formData using current user data. Use optional chaining for safety.
-  // This prevents crashes if user object is missing optional fields like 'bio'.
+
   const [formData, setFormData] = useState({
     name: user?.name || "",
     username: user?.username || "",
@@ -345,3 +344,4 @@ const Profile = () => {
 };
 
 export default Profile;
+
