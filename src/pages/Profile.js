@@ -1,114 +1,26 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
-import "./ReportIssue.css";
-import "ol/ol.css";
+import "./Profile.css";
 
-const Swal = window.Swal;
+const Profile = () => {
+  const { user, updateProfile, loading } = useAuth();
 
-// OpenLayers Imports
-import Map from "ol/Map";
-import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
-import OSM from "ol/source/OSM";
-import Point from "ol/geom/Point";
-import Feature from "ol/Feature";
-import VectorLayer from "ol/layer/Vector";
-import VectorSource from "ol/source/Vector";
-import Style from "ol/style/Style";
-import Icon from "ol/style/Icon";
-import { toLonLat, fromLonLat } from "ol/proj";
-
-// Utility Imports
-import { reverseGeocode, initialCenter } from "../utils/MapUtils";
-
-const API_URL = "http://localhost:5000/api/issues";
-
-const ReportIssue = () => {
-  const { user } = useAuth();
-  const mapElement = useRef();
-
-  // Map state management
-  const [map, setMap] = useState(null);
-  const [markerSource] = useState(new VectorSource());
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  // State Management
+  const [activeTab, setActiveTab] = useState("profile");
+  const [editMode, setEditMode] = useState(false);
+  const [updateError, setUpdateError] = useState("");
+  const [updateLoading, setUpdateLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    title: "",
-    issueType: "",
-    priority: "medium",
-    address: "",
-    landmark: "",
-    description: "",
+    name: user?.name || "",
+    username: user?.username || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    location: user?.location || "",
+    bio: user?.bio || "",
   });
 
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const issueTypes = [
-    { value: "pothole", label: "Pothole", icon: "bi-cone-striped" },
-    { value: "garbage", label: "Garbage Dump", icon: "bi-trash3" },
-    {
-      value: "streetlight",
-      label: "Broken Streetlight",
-      icon: "bi-lightbulb-off",
-    },
-    { value: "water_leak", label: "Water Leak", icon: "bi-droplet" },
-    { value: "other", label: "Other", icon: "bi-exclamation-circle" },
-  ];
-
-  const priorityLevels = [
-    { value: "low", label: "Low", icon: "bi-arrow-down-circle" },
-    { value: "medium", label: "Medium", icon: "bi-dash-circle" },
-    { value: "high", label: "High", icon: "bi-arrow-up-circle" },
-  ];
-
-  // Initialize map
-  useEffect(() => {
-    const markerStyle = new Style({
-      image: new Icon({
-        anchor: [0.5, 1],
-        src: "https://openlayers.org/en/latest/examples/data/icon.png",
-      }),
-    });
-
-    const initialMap = new Map({
-      target: mapElement.current,
-      layers: [
-        new TileLayer({ source: new OSM() }),
-        new VectorLayer({ source: markerSource, style: markerStyle }),
-      ],
-      view: new View({
-        center: initialCenter,
-        zoom: 12,
-      }),
-    });
-
-    setMap(initialMap);
-
-    initialMap.on("click", async (evt) => {
-      const coords = toLonLat(evt.coordinate);
-      setSelectedLocation(coords);
-
-      markerSource.clear();
-      const marker = new Feature({
-        geometry: new Point(evt.coordinate),
-      });
-      markerSource.addFeature(marker);
-
-      setLoading(true);
-      const addressString = await reverseGeocode(coords[0], coords[1]);
-      setFormData((prev) => ({
-        ...prev,
-        address: addressString,
-      }));
-      setLoading(false);
-    });
-
-    return () => initialMap.setTarget(undefined);
-  }, [markerSource]);
-
+  // Handler for form input changes
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -116,319 +28,309 @@ const ReportIssue = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImageFile(null);
-      setImagePreview(null);
-    }
-  };
-
+  // Handler for form submission (Save Changes)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validation with SweetAlert2
-    if (!selectedLocation) {
-      Swal.fire({
-        icon: "warning",
-        title: "Location Required",
-        text: "Please select a location on the map by clicking on it.",
-        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-        color: "#1B1B1B",
-        confirmButtonColor: "#005347",
-      });
-      return;
-    }
-
-    if (!formData.title || !formData.issueType || !formData.description) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Information",
-        text: "Please fill in all required fields.",
-        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-        color: "#1B1B1B",
-        confirmButtonColor: "#005347",
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      data.append(key, formData[key]);
-    });
-
-    if (imageFile) {
-      data.append("image", imageFile);
-    }
-
-    data.append("latitude", selectedLocation[1]);
-    data.append("longitude", selectedLocation[0]);
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({
-        icon: "error",
-        title: "Authorization Failed",
-        text: "Please log in again to submit an issue.",
-        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-        color: "#1B1B1B",
-        confirmButtonColor: "#005347",
-      });
-      setLoading(false);
-      return;
-    }
+    setUpdateLoading(true);
+    setUpdateError("");
 
     try {
-      const response = await axios.post(API_URL, data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const result = await updateProfile(formData);
 
-      Swal.fire({
-        icon: "success",
-        title: "Issue Reported Successfully!",
-        text: "Thank you for making your community better.",
-        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-        color: "#1B1B1B",
-        confirmButtonColor: "#005347",
-        timer: 3000,
-        timerProgressBar: true,
-      });
-
-      // Reset form
-      setFormData({
-        title: "",
-        issueType: "",
-        priority: "medium",
-        address: "",
-        landmark: "",
-        description: "",
-      });
-      setImageFile(null);
-      setImagePreview(null);
-      setSelectedLocation(null);
-      markerSource.clear();
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        "Failed to connect to server or report issue.";
-
-      Swal.fire({
-        icon: "error",
-        title: "Submission Failed",
-        text: errorMessage,
-        background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-        color: "#1B1B1B",
-        confirmButtonColor: "#005347",
-      });
+      if (result.success) {
+        alert(result.message);
+        setEditMode(false);
+      } else {
+        setUpdateError(result.message);
+      }
+    } catch (error) {
+      setUpdateError("An unexpected error occurred during update.");
     } finally {
-      setLoading(false);
+      setUpdateLoading(false);
     }
   };
 
-  if (!user) {
-    return (
-      <div className="report-issue-page">
-        <div className="not-authorized">
-          <h2>
-            <i className="bi bi-lock"></i> You need to be logged in to submit
-            civic issues.
-          </h2>
-          <p>Help make your community cleaner and safer by reporting issues.</p>
-        </div>
-      </div>
-    );
-  }
+  // Handler for Cancel button (resets form to current global state)
+  const handleCancel = () => {
+    setEditMode(false);
+    setUpdateError("");
+    // Reset form data to the current global user state (using optional chaining for safety)
+    setFormData({
+      name: user?.name || "",
+      username: user?.username || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      location: user?.location || "",
+      bio: user?.bio || "",
+    });
+  };
+
+  // Format the member since date
+  const formattedMemberSince = user?.memberSince
+    ? new Date(user.memberSince).toLocaleDateString()
+    : "N/A";
+
+  // Get initial for avatar
+  const avatarInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
 
   return (
-    <div className="report-issue-page">
+    <div className="profile-page">
       <div className="container">
-        <div className="report-header">
-          <h1>
-            <i className="bi bi-megaphone"></i> Report Civic Issue
-          </h1>
-          <p>Help make your community cleaner and safer</p>
+        <div className="profile-header">
+          <h1>My Profile</h1>
+          <p>Manage your account settings and personal information.</p>
         </div>
 
-        <div className="report-content-grid">
-          {/* Form Section */}
-          <div className="form-section">
-            <h3>
-              <i className="bi bi-card-checklist"></i> Issue Details
-            </h3>
-            <form onSubmit={handleSubmit} className="report-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="bi bi-text-left"></i> Issue Title *
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    placeholder="Brief title for the issue"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="bi bi-tags"></i> Issue Type *
-                  </label>
-                  <select
-                    className="form-control"
-                    name="issueType"
-                    value={formData.issueType}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select type...</option>
-                    {issueTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        <div className="profile-layout">
+          {/* Sidebar */}
+          <div className="profile-sidebar">
+            <div className="user-card">
+              <div className="user-avatar">{avatarInitial}</div>
+              <div className="user-info">
+                <h3>{user?.name}</h3>
+                <p className="username">@{user?.username}</p>
+                <p className="user-role">{user?.role}</p>
               </div>
+              <p className="member-since">
+                Member Since: {formattedMemberSince}
+              </p>
+            </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="bi bi-speedometer2"></i> Priority Level *
-                  </label>
-                  <select
-                    className="form-control"
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleChange}
-                    required
-                  >
-                    {priorityLevels.map((level) => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="bi bi-signpost-2"></i> Landmark (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="landmark"
-                    value={formData.landmark}
-                    onChange={handleChange}
-                    placeholder="Nearby landmark"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  <i className="bi bi-geo-alt"></i> Address (Click on map)
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="address"
-                  value={formData.address}
-                  readOnly
-                  placeholder="Select location on map"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  <i className="bi bi-pencil-square"></i> Description *
-                </label>
-                <textarea
-                  className="form-control"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows="3"
-                  placeholder="Describe the issue in detail..."
-                  required
-                ></textarea>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  <i className="bi bi-image"></i> Upload Image (Optional)
-                </label>
-                <div className="custom-file-upload">
-                  <span className="file-name-display">
-                    {imageFile ? imageFile.name : "No file chosen"}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-upload"
-                    onClick={() => document.getElementById("imageFile").click()}
-                  >
-                    <i className="bi bi-folder2-open"></i> Browse
-                  </button>
-                  <input
-                    type="file"
-                    id="imageFile"
-                    className="file-input-hidden"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </div>
-              </div>
-
-              {/* Image Preview and Submit Button Side by Side */}
-              <div className="form-bottom-section">
-                {/* Only show preview container when image exists */}
-                <div
-                  className={`image-preview-container ${
-                    imagePreview ? "has-image" : ""
-                  }`}
-                >
-                  {imagePreview && <img src={imagePreview} alt="Preview" />}
-                </div>
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <i className="bi bi-hourglass-split spinning"></i>{" "}
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-send"></i> Submit Issue
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </form>
+            {/* Profile Navigation */}
+            <nav className="profile-nav">
+              <button
+                className={`nav-item ${
+                  activeTab === "profile" ? "active" : ""
+                }`}
+                onClick={() => setActiveTab("profile")}
+              >
+                👤 Personal Details
+              </button>
+              <button
+                className={`nav-item ${
+                  activeTab === "security" ? "active" : ""
+                }`}
+                onClick={() => setActiveTab("security")}
+              >
+                🔒 Security & Privacy
+              </button>
+            </nav>
           </div>
 
-          {/* Map Section */}
-          <div className="form-section map-card">
-            <h3>
-              <i className="bi bi-map"></i> Select Location on Map
-            </h3>
-            <div ref={mapElement} className="map-placeholder"></div>
-            {selectedLocation && (
-              <div className="location-selected-text">
-                <i className="bi bi-pin-map-fill"></i> Location selected
+          {/* Main Content */}
+          <div className="profile-content">
+            {activeTab === "profile" && (
+              <div className="tab-content">
+                <div className="tab-header">
+                  <h2>{editMode ? "Edit Profile" : "Personal Details"}</h2>
+                  {!editMode && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setEditMode(true)}
+                    >
+                      Edit Profile
+                    </button>
+                  )}
+                </div>
+
+                {updateError && (
+                  <div className="alert alert-error">{updateError}</div>
+                )}
+
+                {/* Profile View Mode */}
+                {!editMode ? (
+                  <div className="profile-details">
+                    <div className="detail-group">
+                      <label>Full Name</label>
+                      <p>{user?.name}</p>
+                    </div>
+                    <div className="detail-group">
+                      <label>Username</label>
+                      <p>@{user?.username}</p>
+                    </div>
+                    <div className="detail-group">
+                      <label>Email</label>
+                      <p>{user?.email}</p>
+                    </div>
+                    <div className="detail-group">
+                      <label>Phone Number</label>
+                      <p>{user?.phone || "Not provided"}</p>
+                    </div>
+                    <div className="detail-group">
+                      <label>Location</label>
+                      <p>{user?.location || "Not set"}</p>
+                    </div>
+                    <div className="detail-group">
+                      <label>Bio</label>
+                      <p>{user?.bio || "No bio set yet."}</p>
+                    </div>
+                  </div>
+                ) : (
+                  // Profile Edit Mode (Form)
+                  <form onSubmit={handleSubmit} className="profile-form">
+                    <div className="form-group">
+                      <label htmlFor="name" className="form-label">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        className="form-control"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="username" className="form-label">
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        className="form-control"
+                        value={formData.username}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="email" className="form-label">
+                        Email
+                      </label>
+                      {/* Email is typically read-only */}
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        className="form-control"
+                        value={formData.email}
+                        disabled
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="phone" className="form-label">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        className="form-control"
+                        value={formData.phone}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="location" className="form-label">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        className="form-control"
+                        value={formData.location}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="bio" className="form-label">
+                        Bio
+                      </label>
+                      <textarea
+                        id="bio"
+                        name="bio"
+                        className="form-control"
+                        rows="3"
+                        value={formData.bio}
+                        onChange={handleChange}
+                      ></textarea>
+                    </div>
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={handleCancel}
+                        disabled={updateLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        disabled={updateLoading}
+                      >
+                        {updateLoading ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {activeTab === "security" && (
+              <div className="tab-content">
+                <h2>Security & Privacy</h2>
+
+                {/* --- Placeholder Content (What you see now) --- 
+    <div className="coming-soon">
+      <h3>Password Management</h3>
+      <p>Password change form and multi-factor authentication options will be here.</p>
+    </div>
+    */}
+
+                {/* ---Password Change Form  --- */}
+                <div className="security-section">
+                  <h3>Change Password</h3>
+                  <form className="password-form">
+                    <div className="form-group">
+                      <label htmlFor="current-password" className="form-label">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        id="current-password"
+                        name="currentPassword"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="new-password" className="form-label">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="new-password"
+                        name="newPassword"
+                        className="form-control"
+                        required
+                        minLength="6"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="confirm-password" className="form-label">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="confirm-password"
+                        name="confirmPassword"
+                        className="form-control"
+                        required
+                        minLength="6"
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-primary">
+                      Update Password
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </div>
@@ -438,4 +340,4 @@ const ReportIssue = () => {
   );
 };
 
-export default ReportIssue;
+export default Profile;
