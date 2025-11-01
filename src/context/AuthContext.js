@@ -126,6 +126,33 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: errorMessage };
     }
   };
+  const updatePassword = async (passwords) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.put(
+        `${API_URL}/change-password`,
+        passwords,
+        {
+          // Use PUT /change-password
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return { success: true, message: response.data.message };
+      }
+      return {
+        success: false,
+        message: response.data.message || "Password change failed.",
+      };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Server error during password update.";
+      return { success: false, message: errorMessage };
+    }
+  };
 
   const value = {
     user,
@@ -135,7 +162,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     loading,
     updateProfile,
+    updatePassword,
     loginWithToken,
+    setUserData,
   };
 
   return (
