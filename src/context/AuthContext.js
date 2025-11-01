@@ -164,7 +164,7 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     updatePassword,
     loginWithToken,
-    setUserData,
+    // setUserData,
   };
 
   return (
