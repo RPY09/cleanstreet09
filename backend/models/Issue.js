@@ -11,8 +11,8 @@ const issueSchema = new mongoose.Schema({
   address: { type: String, required: true },
   landmark: { type: String },
   description: { type: String, required: true },
-  // Image URL from Cloudinary
-  imageUrl: { type: String },
+  // MULTI-IMAGE SUPPORT: Array of image URLs from Cloudinary
+  imageUrls: [{ type: String }],
   // Reference the User who reported it
   reportedBy: {
     type: mongoose.Schema.Types.ObjectId,
