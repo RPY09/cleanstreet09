@@ -7,7 +7,7 @@ const streamifier = require("streamifier"); // Used to stream memory-stored file
 exports.reportIssue = async (req, res) => {
   const { title, issueType, priority, address, landmark, description } =
     req.body;
-  const imageFile = req.file; // File comes from multer middleware (stored in memory)
+  const imageFiles = req.files; // Array from multer
 
   if (!title || !issueType || !address || !description) {
     return res.status(400).json({
@@ -17,14 +17,15 @@ exports.reportIssue = async (req, res) => {
   }
 
   try {
-    let uploadedImage = null;
+    let uploadedImages = [];
 
-    // 1. Image Upload to Cloudinary (using stream)
-    if (imageFile) {
+    // MULTI-IMAGE UPLOAD TO CLOUDINARY
+    if (imageFiles && imageFiles.length > 0) {
+      // Helper function for buffer upload
       const uploadFromBuffer = (file) => {
         return new Promise((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: "cleanstreet_issues" }, // Folder name in Cloudinary
+            { folder: "cleanstreet_issues" },
             (error, result) => {
               if (result) {
                 resolve(result.secure_url);
@@ -33,15 +34,17 @@ exports.reportIssue = async (req, res) => {
               }
             }
           );
-          // Pipe the buffer into the upload stream
           streamifier.createReadStream(file.buffer).pipe(uploadStream);
         });
       };
 
-      uploadedImage = await uploadFromBuffer(imageFile);
+      // Upload all images in parallel (up to 3)
+      uploadedImages = await Promise.all(
+        imageFiles.map((file) => uploadFromBuffer(file))
+      );
     }
 
-    // 2. Create Issue in Database
+    // Create Issue in Database
     const newIssue = await Issue.create({
       title,
       issueType,
@@ -49,8 +52,8 @@ exports.reportIssue = async (req, res) => {
       address,
       landmark,
       description,
-      imageUrl: uploadedImage,
-      reportedBy: req.user._id, // User ID comes from the 'protect' middleware
+      imageUrls: uploadedImages,
+      reportedBy: req.user._id,
     });
 
     res.status(201).json({
