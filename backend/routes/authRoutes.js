@@ -6,6 +6,7 @@ const {
   updateUserProfile,
   sendOtp,
   verifyOtp,
+  changePassword,
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -20,5 +21,6 @@ router.get("/dashboard", protect, getDashboardData);
 
 // NEW PROTECTED ROUTE for updating profile
 router.put("/profile", protect, updateUserProfile);
+router.put("/change-password", protect, changePassword);
 
 module.exports = router;
