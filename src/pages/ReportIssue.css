@@ -287,6 +287,11 @@ select.form-control {
   height: 100%;
   object-fit: cover;
 }
+.image-preview-list {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
 
 /* --- Map Specific Styling --- */
 .map-card {

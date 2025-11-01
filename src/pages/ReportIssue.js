@@ -3,8 +3,9 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ReportIssue.css";
 import "ol/ol.css";
+import Swal from "sweetalert2";
 
-const Swal = window.Swal;
+// const Swal = window.Swal;
 
 // OpenLayers Imports
 import Map from "ol/Map";
@@ -42,8 +43,9 @@ const ReportIssue = () => {
     description: "",
   });
 
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  // Image state (array)
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const issueTypes = [
@@ -116,15 +118,11 @@ const ReportIssue = () => {
     });
   };
 
+  // Handle up to 3 images
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImageFile(null);
-      setImagePreview(null);
-    }
+    const files = Array.from(e.target.files).slice(0, 3);
+    setImageFiles(files);
+    setImagePreviews(files.map((file) => URL.createObjectURL(file)));
   };
 
   const handleSubmit = async (e) => {
@@ -162,9 +160,10 @@ const ReportIssue = () => {
       data.append(key, formData[key]);
     });
 
-    if (imageFile) {
-      data.append("image", imageFile);
-    }
+    // Append up to 3 images
+    imageFiles.forEach((file) => {
+      data.append("images", file); // backend should expect 'images' as array
+    });
 
     data.append("latitude", selectedLocation[1]);
     data.append("longitude", selectedLocation[0]);
@@ -202,7 +201,7 @@ const ReportIssue = () => {
         timerProgressBar: true,
       });
 
-      // Reset form
+      // Reset form and images
       setFormData({
         title: "",
         issueType: "",
@@ -211,8 +210,8 @@ const ReportIssue = () => {
         landmark: "",
         description: "",
       });
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       setSelectedLocation(null);
       markerSource.clear();
     } catch (err) {
@@ -256,7 +255,6 @@ const ReportIssue = () => {
           </h1>
           <p>Help make your community cleaner and safer</p>
         </div>
-
         <div className="report-content-grid">
           {/* Form Section */}
           <div className="form-section">
@@ -365,11 +363,13 @@ const ReportIssue = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  <i className="bi bi-image"></i> Upload Image (Optional)
+                  <i className="bi bi-image"></i> Upload Images (Max 3)
                 </label>
                 <div className="custom-file-upload">
                   <span className="file-name-display">
-                    {imageFile ? imageFile.name : "No file chosen"}
+                    {imageFiles.length === 0
+                      ? "No files chosen"
+                      : imageFiles.map((file) => file.name).join(", ")}
                   </span>
                   <button
                     type="button"
@@ -383,20 +383,23 @@ const ReportIssue = () => {
                     id="imageFile"
                     className="file-input-hidden"
                     accept="image/*"
+                    multiple
                     onChange={handleImageChange}
                   />
                 </div>
               </div>
 
-              {/* Image Preview and Submit Button Side by Side */}
+              {/* Image Previews and Submit */}
               <div className="form-bottom-section">
-                {/* Only show preview container when image exists */}
-                <div
-                  className={`image-preview-container ${
-                    imagePreview ? "has-image" : ""
-                  }`}
-                >
-                  {imagePreview && <img src={imagePreview} alt="Preview" />}
+                <div className="image-preview-list">
+                  {imagePreviews.map((preview, idx) => (
+                    <div
+                      key={idx}
+                      className="image-preview-container has-image"
+                    >
+                      <img src={preview} alt={`Preview ${idx + 1}`} />
+                    </div>
+                  ))}
                 </div>
                 <div className="form-actions">
                   <button
@@ -419,7 +422,6 @@ const ReportIssue = () => {
               </div>
             </form>
           </div>
-
           {/* Map Section */}
           <div className="form-section map-card">
             <h3>
