@@ -115,7 +115,8 @@ const Profile = () => {
                 }`}
                 onClick={() => setActiveTab("profile")}
               >
-                👤 Personal Details
+                <i className="bi bi-person-fill" />
+                <span style={{ marginLeft: 8 }}>Personal Details</span>
               </button>
               <button
                 className={`nav-item ${
@@ -123,7 +124,9 @@ const Profile = () => {
                 }`}
                 onClick={() => setActiveTab("security")}
               >
-                🔒 Security & Privacy
+                <i class="bi bi-lock-fill"></i>
+                <span style={{ marginLeft: 8 }}>Security & Privacy</span>
+                 
               </button>
             </nav>
           </div>
