@@ -3,12 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { reverseGeocode } from "../utils/MapUtils";
 import "./Auth.css";
 
 const API_URL = "http://localhost:5000/api/auth";
-const GOOGLE_API_KEY = ""; // for google api key
 
 const Login = () => {
+  // Use loginWithToken to update context correctly
   const { login, register, loginWithToken } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,7 +61,7 @@ const Login = () => {
 
     try {
       if (forgotMode) {
-        // OTP verification
+        // --- OTP VERIFICATION SUBMISSION ---
         const response = await axios.post(`${API_URL}/verify-otp`, {
           email: loginData.email,
           otp: loginData.otp,
@@ -69,16 +70,19 @@ const Login = () => {
         if (response.data?.success) {
           const { user, token } = response.data;
 
+          // Use loginWithToken from AuthContext to properly set state, axios header and localStorage
           if (loginWithToken) {
             loginWithToken(token, user);
           } else {
+            // Fallback: set localStorage and axios header if loginWithToken missing
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(user));
-            window.location.reload();
-            return;
+            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           }
 
-          await swalSuccess("OTP verified", "You have been logged in.");
+          await swalSuccess("OTP verified", "Access granted. Redirecting...");
+
+          // Redirect now that the global user state is updated
           if (user?.role === "admin") navigate("/admin");
           else navigate("/dashboard");
         } else {
@@ -86,7 +90,7 @@ const Login = () => {
           swalError("OTP Error", msg);
         }
       } else {
-        // Standard password login
+        // --- STANDARD PASSWORD LOGIN SUBMISSION (Existing stable logic) ---
         const res = await login(loginData.email, loginData.password);
 
         if (res?.success) {
@@ -174,7 +178,7 @@ const Login = () => {
     }
   };
 
-  // --- GEOLOCATION: GET CURRENT LOCATION ---
+  // --- GEOLOCATION: GET CURRENT LOCATION (FIXED TO RETURN FULL ADDRESS) ---
   const fillCurrentLocation = () => {
     if (!navigator.geolocation) {
       const msg = "Geolocation is not supported by your browser.";
@@ -189,26 +193,20 @@ const Login = () => {
         const lon = pos.coords.longitude;
         let locationString = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
 
-        if (GOOGLE_API_KEY) {
-          const REVERSE_GEOCODE_URL =
-            "https://maps.googleapis.com/maps/api/geocode/json";
-          try {
-            const response = await axios.get(REVERSE_GEOCODE_URL, {
-              params: { latlng: `${lat},${lon}`, key: GOOGLE_API_KEY },
-            });
-            if (response.data.results && response.data.results.length > 0) {
-              locationString = response.data.results[0].formatted_address;
-            }
-          } catch (apiError) {
-            console.error("Reverse Geocoding Failed:", apiError);
-            const msg =
-              "Location found, but failed to get street address. Using coordinates.";
-            swalInfo("Location", msg);
-          }
+        try {
+          // --- CALL REVERSE GEOCODING (Nominatim) ---
+          locationString = await reverseGeocode(lon, lat);
+        } catch (apiError) {
+          console.error("Reverse Geocoding Failed:", apiError);
+          const msg =
+            "Location found, but failed to get street address. Coordinates used.";
+          swalInfo("Location", msg);
         }
 
+        // Update form state with the full address (or coordinates as fallback)
         setRegData((p) => ({ ...p, location: locationString }));
         setLoading(false);
+        swalSuccess("Location Updated", "Address fetched and updated.");
       },
       (err) => {
         const msg = "Unable to get location: " + err.message;
