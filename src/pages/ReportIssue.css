@@ -269,6 +269,7 @@ select.form-control {
 .image-preview-container {
   width: 100px;
   height: 100px;
+  position: relative;
   border-radius: 10px;
   overflow: hidden;
   border: 2px solid var(--g-3);
@@ -291,6 +292,36 @@ select.form-control {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+.remove-image-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(5, 31, 32, 0.85);
+  color: var(--g-pale);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  transition: transform 0.12s ease, background 0.12s ease;
+  z-index: 3;
+}
+.remove-image-btn:hover {
+  transform: scale(1.05);
+  background: rgba(22, 56, 50, 0.95);
+}
+.image-preview-container:hover img {
+  transform: scale(1.02);
+  transition: transform 0.12s ease;
+}
+.remove-image-btn i {
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 /* --- Map Specific Styling --- */

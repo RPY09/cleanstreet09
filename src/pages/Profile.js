@@ -6,18 +6,11 @@ import { reverseGeocode } from "../utils/MapUtils";
 import "./Auth.css";
 import "./Profile.css";
 
-/**
- * Profile page
- * - Edit profile: email is read-only and not sent to update endpoint
- * - Security: send OTP button becomes "Verify OTP" after sending; a single button handles both send and verify
- * - SweetAlert2 calls use a consistent color palette for background and confirm button
- */
-
 const swalOptions = (icon, title, text) => ({
   icon,
   title,
   text,
-  background: "linear-gradient(to bottom, #F0FFF4, #E6F4EA)", // pale green gradient
+  background: "linear-gradient(to bottom, #F0FFF4, #E6F4EA)",
   color: "#05302f", // dark-teal text
   confirmButtonColor: "#16594f", // accent confirm color
 });
@@ -114,9 +107,6 @@ const Profile = () => {
   // Get initial for avatar
   const avatarInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
 
-  // Combined Send OTP / Verify OTP handler:
-  // - If otpSent is false -> sends OTP (sets otpSent true)
-  // - If otpSent is true -> verifies OTP (sets otpVerifiedLocal true on success)
   const sendOrVerifyOtp = async () => {
     const emailToUse = formData.email || user?.email;
     if (!emailToUse) {
@@ -174,7 +164,6 @@ const Profile = () => {
       return;
     }
 
-    // Otherwise, verify the OTP with backend (verify-otp-only)
     if (otpSent) {
       if (!otpValue) {
         Swal.fire(

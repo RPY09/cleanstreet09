@@ -70,14 +70,6 @@ export const forwardGeocode = async (address) => {
   }
 };
 
-/**
- * Get an OpenLayers center coordinate (projected) for a given address.
- * - If address is provided and geocoding succeeds, returns fromLonLat([lon, lat]) for that address.
- * - Otherwise returns default center (Hyderabad approx).
- *
- * Usage:
- *   const center = await getInitialCenterForAddress(user?.location);
- */
 const DEFAULT_LON_LAT = [78.4744, 17.385]; // [lon, lat] Hyderabad (approx)
 export const getInitialCenterForAddress = async (address) => {
   // Try to geocode the provided address

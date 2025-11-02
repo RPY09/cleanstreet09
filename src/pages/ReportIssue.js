@@ -42,7 +42,7 @@ const ReportIssue = () => {
 
   // Image state (array)
   const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]); // array of object URLs
   const [loading, setLoading] = useState(false);
 
   const issueTypes = [
@@ -75,7 +75,6 @@ const ReportIssue = () => {
 
     // async initializer so we can forward-geocode user's address if available
     const initMap = async () => {
-      // get projected center using user's saved location (user.location) if available
       const centerProjected = await getInitialCenterForAddress(user?.location);
 
       const initialMap = new Map({
@@ -124,7 +123,10 @@ const ReportIssue = () => {
       if (map) {
         map.setTarget(undefined);
       }
+      // revoke any created object URLs to avoid leaks
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markerSource, user?.location]);
 
   const handleChange = (e) => {
@@ -136,9 +138,27 @@ const ReportIssue = () => {
 
   // Handle up to 3 images
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 3);
-    setImageFiles(files);
-    setImagePreviews(files.map((file) => URL.createObjectURL(file)));
+    const filesSelected = Array.from(e.target.files).slice(0, 3);
+    // Revoke previous previews
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+
+    setImageFiles(filesSelected);
+    setImagePreviews(filesSelected.map((file) => URL.createObjectURL(file)));
+    // reset input value so same file can be reselected later if removed
+    e.target.value = "";
+  };
+
+  // Remove a selected image by index
+  const removeImage = (index) => {
+    // revoke object URL
+    const urlToRevoke = imagePreviews[index];
+    if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
+
+    const newFiles = imageFiles.filter((_, i) => i !== index);
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+
+    setImageFiles(newFiles);
+    setImagePreviews(newPreviews);
   };
 
   const handleSubmit = async (e) => {
@@ -217,7 +237,7 @@ const ReportIssue = () => {
         timerProgressBar: true,
       });
 
-      // Reset form and images
+      // Reset form and images, revoke previews
       setFormData({
         title: "",
         issueType: "",
@@ -226,6 +246,7 @@ const ReportIssue = () => {
         landmark: "",
         description: "",
       });
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
       setImageFiles([]);
       setImagePreviews([]);
       setSelectedLocation(null);
@@ -392,6 +413,7 @@ const ReportIssue = () => {
                     type="button"
                     className="btn-upload"
                     onClick={() => document.getElementById("imageFile").click()}
+                    title="Add/Replace images (max 3)"
                   >
                     <i className="bi bi-folder2-open"></i> Browse
                   </button>
@@ -408,13 +430,22 @@ const ReportIssue = () => {
 
               {/* Image Previews and Submit */}
               <div className="form-bottom-section">
-                <div className="image-preview-list">
+                <div className="image-preview-list" aria-live="polite">
                   {imagePreviews.map((preview, idx) => (
                     <div
                       key={idx}
                       className="image-preview-container has-image"
                     >
                       <img src={preview} alt={`Preview ${idx + 1}`} />
+                      <button
+                        type="button"
+                        className="remove-image-btn"
+                        onClick={() => removeImage(idx)}
+                        aria-label={`Remove image ${idx + 1}`}
+                        title="Remove image"
+                      >
+                        <i className="bi bi-x-lg"></i>
+                      </button>
                     </div>
                   ))}
                 </div>
