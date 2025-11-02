@@ -143,7 +143,6 @@ exports.changePassword = async (req, res) => {
 
 // --- Dashboard Data ---
 exports.getDashboardData = async (req, res) => {
-  // ... (dashboard logic is correct) ...
   const userId = req.user._id;
 
   // MOCK DATA for initial setup:
@@ -171,14 +170,14 @@ exports.getDashboardData = async (req, res) => {
 
 // --- Profile Update ---
 exports.updateUserProfile = async (req, res) => {
-  // ... (profile update logic is correct) ...
   try {
     const user = await User.findById(req.user._id);
 
     if (user) {
       user.name = req.body.name || user.name;
       user.username = req.body.username || user.username;
-      user.email = req.body.email || user.email;
+      // Email must not be editable via this endpoint for safety
+      // user.email = req.body.email || user.email; // intentionally not allowed
       user.phone = req.body.phone || user.phone;
       user.location = req.body.location || user.location;
       user.bio = req.body.bio || user.bio;
@@ -213,7 +212,6 @@ exports.updateUserProfile = async (req, res) => {
 
 // --- Send OTP (Forgot Password) ---
 exports.sendOtp = async (req, res) => {
-  // ... (sendOtp logic is correct) ...
   const { email } = req.body;
 
   try {
@@ -253,7 +251,7 @@ exports.sendOtp = async (req, res) => {
   }
 };
 
-// --- Verify OTP (FINAL CORRECTION APPLIED) ---
+// --- Verify OTP (existing flow used for login/OTP-login) ---
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
@@ -266,16 +264,13 @@ exports.verifyOtp = async (req, res) => {
         .json({ success: false, message: "Invalid or expired OTP." });
     }
 
-    // 1. Success: Delete the OTP record
+    // Remove the OTP after successful use (one-time)
     await OTP.deleteOne({ email });
 
-    // 2. Find the user
     const user = await User.findOne({ email });
 
-    // 3. FIX: Generate Token (This resolves the ReferenceError)
     const token = generateToken(user._id);
 
-    // 4. Return a successful login response
     res.json({
       success: true,
       message: "OTP verified. Login successful.",
@@ -294,5 +289,85 @@ exports.verifyOtp = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Server error during verification." });
+  }
+};
+
+/**
+ * New endpoint: verifyOtpOnly
+ * Verifies OTP but DOES NOT delete it. Used to "unlock" UI for password reset.
+ */
+exports.verifyOtpOnly = async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and OTP required." });
+  }
+
+  try {
+    const otpRecord = await OTP.findOne({ email, otp });
+    if (!otpRecord) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP." });
+    }
+
+    res.json({ success: true, message: "OTP verified." });
+  } catch (error) {
+    console.error("verifyOtpOnly error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error verifying OTP." });
+  }
+};
+
+/**
+ * New endpoint: resetPasswordWithOtp
+ * Resets a user's password using email + OTP + newPassword.
+ * Deletes OTP once used.
+ */
+exports.resetPasswordWithOtp = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Email, OTP and new password are required.",
+    });
+  }
+
+  try {
+    const otpRecord = await OTP.findOne({ email, otp });
+    if (!otpRecord) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "User not found for supplied email.",
+        });
+    }
+
+    // Hash and update password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    // remove OTP record once used
+    await OTP.deleteOne({ email });
+
+    res.json({ success: true, message: "Password updated successfully." });
+  } catch (error) {
+    console.error("resetPasswordWithOtp error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while resetting password.",
+    });
   }
 };
