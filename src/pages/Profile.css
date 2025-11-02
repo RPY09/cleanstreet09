@@ -194,6 +194,21 @@ body,
   margin-bottom: 8px;
 }
 
+/* Prevent browser default link/button hover color (blue) and keep theme colors */
+.nav-item,
+.nav-item * {
+  color: inherit;
+}
+.nav-item:hover,
+.nav-item:focus {
+  color: var(--text-dark);
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-item:focus {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(5,31,32,0.08);
+}
+
 /* Content card styled like auth face */
 .profile-content {
   background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
@@ -215,6 +230,34 @@ body,
 .profile-content:focus-within {
   box-shadow: 0 30px 80px rgba(5, 31, 32, 0.16);
   transform: translateY(-4px);
+}
+
+/* When editing, allow the card to expand and let the page scroll instead of internal scrolling */
+.profile-content.editing {
+  max-height: none;
+  overflow: visible;
+}
+
+/* Tighter spacing when editing so the Edit Profile card is more compact */
+.profile-content.editing .profile-form,
+.profile-content.editing .profile-details {
+  gap: 6px; /* reduce grid gap specifically while editing */
+}
+.profile-content.editing .form-group {
+  gap: 2px; /* reduce label-to-control gap in edit mode */
+}
+.profile-content.editing .tab-header {
+  padding-bottom: 6px;
+}
+
+/* Hide visual scrollbar but keep scroll behavior (desktop) for a cleaner look */
+.profile-content {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.profile-content::-webkit-scrollbar {
+  width: 0; /* Safari/WebKit */
+  height: 0;
 }
 
 /* Tab header */
@@ -241,7 +284,7 @@ body,
 .profile-details {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   min-height: 0;
 }
@@ -250,7 +293,7 @@ body,
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .form-label {
   font-weight: 600;
@@ -381,6 +424,56 @@ body,
 }
 .btn-primary:hover {
   transform: translateY(-3px);
+}
+
+/* Secondary button styled with theme colors (used for Edit Profile and Send OTP) */
+.btn-secondary {
+  background: linear-gradient(90deg, var(--g-2), var(--g-3));
+  color: var(--g-pale);
+  border: none;
+  box-shadow: 0 8px 22px rgba(3, 30, 28, 0.12);
+  padding: 8px 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(3, 30, 28, 0.14);
+}
+
+/* OTP button variant (smaller, aligned with input) */
+.otp-btn {
+  padding: 8px 10px;
+  height: 44px;
+  width: 130px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+/* Ensure secondary buttons never show a blue default hover/focus color; keep theme */
+.btn-secondary,
+.btn-secondary:visited,
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-secondary:active,
+.btn-secondary:focus-visible,
+.otp-btn:hover,
+.otp-btn:focus,
+.otp-btn:active {
+  background: linear-gradient(90deg, var(--g-2), var(--g-3)) !important;
+  color: var(--g-pale) !important;
+  text-decoration: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove default outline while keeping an accessible focus ring */
+.btn-secondary:focus-visible,
+.otp-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 10px 28px rgba(5, 31, 32, 0.14);
 }
 
 /* detail groups */

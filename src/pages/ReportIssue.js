@@ -3,8 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ReportIssue.css";
 import "ol/ol.css";
-import Swal from "sweetalert2"; // use npm import (ensure package installed)
-
+import Swal from "sweetalert2";
 // OpenLayers Imports
 import Map from "ol/Map";
 import View from "ol/View";
@@ -126,8 +125,6 @@ const ReportIssue = () => {
         map.setTarget(undefined);
       }
     };
-    // we intentionally include user?.location so map recenters when logged-in user's location changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markerSource, user?.location]);
 
   const handleChange = (e) => {

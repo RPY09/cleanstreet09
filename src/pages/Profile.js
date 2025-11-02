@@ -125,7 +125,7 @@ const Profile = () => {
           </div>
 
           {/* Main Content */}
-          <div className="profile-content">
+          <div className={`profile-content ${editMode ? "editing" : ""}`}>
             {activeTab === "profile" && (
               <div className="tab-content">
                 <div className="tab-header">
