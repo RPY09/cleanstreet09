@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+import Swal from "sweetalert2";
 import "./Profile.css";
 
 const Profile = () => {
@@ -19,6 +21,11 @@ const Profile = () => {
     location: user?.location || "",
     bio: user?.bio || "",
   });
+
+  // OTP / password UI state (for security section)
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   // Handler for form input changes
   const handleChange = (e) => {
@@ -286,20 +293,80 @@ const Profile = () => {
 
                 {/* ---Password Change Form  --- */}
                 <div className="security-section">
-                  <h3>Change Password</h3>
+                  <h3>Change Password (OTP)</h3>
                   <form className="password-form">
-                    <div className="form-group">
-                      <label htmlFor="current-password" className="form-label">
-                        Current Password
+                    <div className="form-group otp-group">
+                      <label htmlFor="otp" className="form-label">
+                        OTP (sent to your registered phone/email)
                       </label>
-                      <input
-                        type="password"
-                        id="current-password"
-                        name="currentPassword"
-                        className="form-control"
-                        required
-                      />
+                      <div className="otp-row" style={{ display: "flex", gap: "8px" }}>
+                        <input
+                          type="text"
+                          id="otp"
+                          name="otp"
+                          className="form-control"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          placeholder="Enter OTP"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary otp-btn"
+                          onClick={async () => {
+                            // Send OTP to user's registered email via backend
+                            const emailToUse = formData.email || user?.email;
+                            if (!emailToUse) {
+                              Swal.fire({
+                                icon: "warning",
+                                title: "No email",
+                                text: "Please ensure your account has a valid email to receive OTP.",
+                              });
+                              return;
+                            }
+
+                            try {
+                              setSendingOtp(true);
+                              const resp = await axios.post(
+                                "http://localhost:5000/api/auth/send-otp",
+                                { email: emailToUse }
+                              );
+
+                              if (resp.data?.success) {
+                                setOtpSent(true);
+                                Swal.fire({
+                                  icon: "success",
+                                  title: "OTP Sent",
+                                  text: resp.data.message || "OTP sent to your email.",
+                                });
+                              } else {
+                                Swal.fire({
+                                  icon: "error",
+                                  title: "Send Failed",
+                                  text: resp.data?.message || "Failed to send OTP.",
+                                });
+                              }
+                            } catch (err) {
+                              console.error("Send OTP error:", err);
+                              Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: err.response?.data?.message || "Error sending OTP."
+                              });
+                            } finally {
+                              setSendingOtp(false);
+                            }
+                          }}
+                          disabled={sendingOtp || otpSent}
+                        >
+                          {sendingOtp ? "Sending..." : otpSent ? "Sent" : "Send OTP"}
+                        </button>
+                      </div>
+                      {otpSent && (
+                        <small className="help-text">OTP sent — enter it above to verify.</small>
+                      )}
                     </div>
+
                     <div className="form-group">
                       <label htmlFor="new-password" className="form-label">
                         New Password
