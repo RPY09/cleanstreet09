@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { reverseGeocode } from "../utils/MapUtils";
+import "./Auth.css";
 import "./Profile.css";
 
 const Profile = () => {
@@ -21,6 +23,8 @@ const Profile = () => {
     location: user?.location || "",
     bio: user?.bio || "",
   });
+
+  const [locationLoading, setLocationLoading] = useState(false);
 
   // OTP / password UI state (for security section)
   const [otp, setOtp] = useState("");
@@ -231,18 +235,81 @@ const Profile = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label htmlFor="location" className="form-label">
-                        Location
-                      </label>
-                      <input
-                        type="text"
-                        id="location"
-                        name="location"
-                        className="form-control"
-                        value={formData.location}
-                        onChange={handleChange}
-                        required
-                      />
+                                      <label htmlFor="location" className="form-label">
+                                        Location
+                                      </label>
+                                      <div className="location-row">
+                                        <i className="bi bi-geo-alt" />
+                                        <input
+                                          type="text"
+                                          id="location"
+                                          name="location"
+                                          className="forms-control location-input"
+                                          value={formData.location}
+                                          onChange={handleChange}
+                                          required
+                                        />
+                                        <button
+                                          type="button"
+                                          className="location-btn"
+                                          onClick={async () => {
+                                            if (!navigator.geolocation) {
+                                              Swal.fire({
+                                                icon: "warning",
+                                                title: "Geolocation",
+                                                text: "Geolocation is not supported by your browser.",
+                                              });
+                                              return;
+                                            }
+
+                                            try {
+                                              setLocationLoading(true);
+                                              navigator.geolocation.getCurrentPosition(
+                                                async (pos) => {
+                                                  const lat = pos.coords.latitude;
+                                                  const lon = pos.coords.longitude;
+                                                  let locationString = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
+
+                                                  try {
+                                                    // try to get a human-friendly address
+                                                    locationString = await reverseGeocode(lon, lat);
+                                                  } catch (err) {
+                                                    console.error("Reverse geocode failed:", err);
+                                                  }
+
+                                                  setFormData((p) => ({ ...p, location: locationString }));
+                                                  setLocationLoading(false);
+                                                  Swal.fire({
+                                                    icon: "success",
+                                                    title: "Location Updated",
+                                                    text: "Address fetched and filled into the form.",
+                                                  });
+                                                },
+                                                (err) => {
+                                                  console.error("Geolocation error:", err);
+                                                  setLocationLoading(false);
+                                                  Swal.fire({
+                                                    icon: "error",
+                                                    title: "Location error",
+                                                    text: "Unable to get location: " + err.message,
+                                                  });
+                                                },
+                                                { enableHighAccuracy: true, timeout: 10000 }
+                                              );
+                                            } catch (err) {
+                                              console.error("fillCurrentLocation error:", err);
+                                              setLocationLoading(false);
+                                            }
+                                          }}
+                                          disabled={locationLoading}
+                                          title="Use my location"
+                                        >
+                                          <i className="bi bi-geo-fill" />
+                                        </button>
+                                      </div>
+                                      {locationLoading && (
+                                        <small className="location-loading-msg">Getting your location...</small>
+                                      )}
                     </div>
                     <div className="form-group">
                       <label htmlFor="bio" className="form-label">
