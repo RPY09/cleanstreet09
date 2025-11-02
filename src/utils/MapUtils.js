@@ -2,6 +2,9 @@
 import axios from "axios";
 import { fromLonLat } from "ol/proj";
 
+/**
+ * Reverse geocode (lon, lat) -> readable address using Nominatim
+ */
 export const reverseGeocode = async (lon, lat) => {
   try {
     const response = await axios.get(
@@ -30,6 +33,10 @@ export const reverseGeocode = async (lon, lat) => {
   }
 };
 
+/**
+ * Forward geocode an address string -> [lon, lat]
+ * Uses Nominatim search endpoint. Returns null if not found.
+ */
 export const forwardGeocode = async (address) => {
   if (!address || typeof address !== "string" || address.trim() === "") {
     return null;
@@ -63,6 +70,14 @@ export const forwardGeocode = async (address) => {
   }
 };
 
+/**
+ * Get an OpenLayers center coordinate (projected) for a given address.
+ * - If address is provided and geocoding succeeds, returns fromLonLat([lon, lat]) for that address.
+ * - Otherwise returns default center (Hyderabad approx).
+ *
+ * Usage:
+ *   const center = await getInitialCenterForAddress(user?.location);
+ */
 const DEFAULT_LON_LAT = [78.4744, 17.385]; // [lon, lat] Hyderabad (approx)
 export const getInitialCenterForAddress = async (address) => {
   // Try to geocode the provided address

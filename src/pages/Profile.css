@@ -37,13 +37,6 @@ body,
   padding: 20px;
   background: linear-gradient(-180deg, var(--g-4), var(--g-darkest));
 
-  /* background: linear-gradient(
-    180deg,
-    rgba(218, 241, 222, 0.95) 0%,
-    rgba(142, 182, 155, 0.35) 30%,
-    rgba(35, 83, 71, 0.2) 65%,
-    var(--g-darkest) 100%
-  ); */
   animation: pageFade 520ms var(--ease) both;
 }
 @keyframes pageFade {
@@ -65,7 +58,7 @@ body,
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 12px;
-  height: calc(100vh - 80px); /* leave space for navbar */
+  height: calc(100vh - 80px);
 }
 
 /* Header */
@@ -75,12 +68,12 @@ body,
 .profile-header h1 {
   margin: 0;
   font-size: 1.6rem;
-  color: #C9E8D6;
+  color: #c9e8d6;
   font-weight: 800;
 }
 .profile-header p {
   margin: 0;
-  color: #81B79D;
+  color: #81b79d;
 }
 
 /* Layout: left sidebar + right content */
@@ -157,13 +150,12 @@ body,
 
 /* Nav card */
 .profile-nav {
-  /* Match the app theme: soft pale gradient like other cards */
   background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
   border: 1px solid rgba(0, 87, 90, 0.06);
   overflow: hidden;
-  padding: 10px; /* give inner breathing room */
+  padding: 10px;
 }
 .nav-item {
   display: flex;
@@ -176,7 +168,8 @@ body,
   color: var(--text-dark);
   font-weight: 700;
   border-radius: 10px;
-  transition: background var(--fast) var(--ease), transform var(--fast) var(--ease), color var(--fast) var(--ease);
+  transition: background var(--fast) var(--ease),
+    transform var(--fast) var(--ease), color var(--fast) var(--ease);
 }
 .nav-item:hover {
   background: rgba(6, 34, 31, 0.04);
@@ -206,7 +199,7 @@ body,
 }
 .nav-item:focus {
   outline: none;
-  box-shadow: 0 6px 18px rgba(5,31,32,0.08);
+  box-shadow: 0 6px 18px rgba(5, 31, 32, 0.08);
 }
 
 /* Content card styled like auth face */
@@ -435,7 +428,8 @@ body,
   padding: 8px 12px;
   font-weight: 700;
   border-radius: 10px;
-  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+  transition: transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
 }
 .btn-secondary:hover {
   transform: translateY(-2px);
@@ -451,6 +445,30 @@ body,
   align-items: center;
   justify-content: center;
   border-radius: 10px;
+}
+.btn-secondary .bi,
+.btn-primary .bi {
+  margin-right: 8px;
+}
+
+/* Help text color */
+.help-text {
+  display: block;
+  margin-top: 6px;
+  color: #2f6b5e;
+  font-size: 0.9rem;
+}
+
+/* Stronger success hint */
+.help-text.strong {
+  color: #16594f;
+  font-weight: 700;
+}
+
+/* Optional: local styles for disabled verified button appearance */
+.btn.verified {
+  background: linear-gradient(90deg, #1f7a66, #16594f);
+  color: #daf1de;
 }
 
 /* Ensure secondary buttons never show a blue default hover/focus color; keep theme */
@@ -580,7 +598,9 @@ body,
   }
 
   .container {
-    height: calc(100vh - 110px); /* keep content visible under adjusted top padding */
+    height: calc(
+      100vh - 110px
+    ); /* keep content visible under adjusted top padding */
   }
 }
 /* Extra spacing for stacked sidebar elements on mobile */

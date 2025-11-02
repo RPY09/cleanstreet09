@@ -6,6 +6,22 @@ import { reverseGeocode } from "../utils/MapUtils";
 import "./Auth.css";
 import "./Profile.css";
 
+/**
+ * Profile page
+ * - Edit profile: email is read-only and not sent to update endpoint
+ * - Security: send OTP button becomes "Verify OTP" after sending; a single button handles both send and verify
+ * - SweetAlert2 calls use a consistent color palette for background and confirm button
+ */
+
+const swalOptions = (icon, title, text) => ({
+  icon,
+  title,
+  text,
+  background: "linear-gradient(to bottom, #F0FFF4, #E6F4EA)", // pale green gradient
+  color: "#05302f", // dark-teal text
+  confirmButtonColor: "#16594f", // accent confirm color
+});
+
 const Profile = () => {
   const { user, updateProfile, loading } = useAuth();
 
@@ -27,9 +43,14 @@ const Profile = () => {
   const [locationLoading, setLocationLoading] = useState(false);
 
   // OTP / password UI state (for security section)
-  const [otp, setOtp] = useState("");
+  const [otpValue, setOtpValue] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpVerifiedLocal, setOtpVerifiedLocal] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [newPasswordValue, setNewPasswordValue] = useState("");
+  const [confirmNewPasswordValue, setConfirmNewPasswordValue] = useState("");
 
   // Handler for form input changes
   const handleChange = (e) => {
@@ -46,10 +67,19 @@ const Profile = () => {
     setUpdateError("");
 
     try {
-      const result = await updateProfile(formData);
+      // Ensure email is not sent in the payload (server ignores email on update but avoid confusion)
+      const payload = {
+        name: formData.name,
+        username: formData.username,
+        phone: formData.phone,
+        location: formData.location,
+        bio: formData.bio,
+      };
+
+      const result = await updateProfile(payload);
 
       if (result.success) {
-        alert(result.message);
+        Swal.fire(swalOptions("success", "Success", result.message));
         setEditMode(false);
       } else {
         setUpdateError(result.message);
@@ -83,6 +113,199 @@ const Profile = () => {
 
   // Get initial for avatar
   const avatarInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
+
+  // Combined Send OTP / Verify OTP handler:
+  // - If otpSent is false -> sends OTP (sets otpSent true)
+  // - If otpSent is true -> verifies OTP (sets otpVerifiedLocal true on success)
+  const sendOrVerifyOtp = async () => {
+    const emailToUse = formData.email || user?.email;
+    if (!emailToUse) {
+      Swal.fire(
+        swalOptions(
+          "warning",
+          "No email",
+          "Please ensure your account has a valid email to receive OTP."
+        )
+      );
+      return;
+    }
+
+    // If OTP isn't sent yet, send it
+    if (!otpSent) {
+      try {
+        setSendingOtp(true);
+        const resp = await axios.post(
+          "http://localhost:5000/api/auth/send-otp",
+          {
+            email: emailToUse,
+          }
+        );
+
+        if (resp.data?.success) {
+          setOtpSent(true);
+          Swal.fire(
+            swalOptions(
+              "success",
+              "OTP Sent",
+              resp.data.message || "OTP sent to your email."
+            )
+          );
+        } else {
+          Swal.fire(
+            swalOptions(
+              "error",
+              "Send Failed",
+              resp.data?.message || "Failed to send OTP."
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Send OTP error:", err);
+        Swal.fire(
+          swalOptions(
+            "error",
+            "Error",
+            err.response?.data?.message || "Error sending OTP."
+          )
+        );
+      } finally {
+        setSendingOtp(false);
+      }
+      return;
+    }
+
+    // Otherwise, verify the OTP with backend (verify-otp-only)
+    if (otpSent) {
+      if (!otpValue) {
+        Swal.fire(
+          swalOptions(
+            "warning",
+            "Missing OTP",
+            "Please enter the OTP sent to your email."
+          )
+        );
+        return;
+      }
+      try {
+        setVerifyingOtp(true);
+        const resp = await axios.post(
+          "http://localhost:5000/api/auth/verify-otp-only",
+          {
+            email: emailToUse,
+            otp: otpValue,
+          }
+        );
+        if (resp.data?.success) {
+          setOtpVerifiedLocal(true);
+          Swal.fire(
+            swalOptions(
+              "success",
+              "OTP Verified",
+              "You may now enter a new password."
+            )
+          );
+        } else {
+          Swal.fire(
+            swalOptions(
+              "error",
+              "OTP Failed",
+              resp.data?.message || "Invalid OTP."
+            )
+          );
+        }
+      } catch (err) {
+        console.error("verifyOtpForReset error:", err);
+        Swal.fire(
+          swalOptions(
+            "error",
+            "Error",
+            err.response?.data?.message || "Server error verifying OTP."
+          )
+        );
+      } finally {
+        setVerifyingOtp(false);
+      }
+    }
+  };
+
+  // Reset password using OTP (no current password required)
+  const resetPassword = async (e) => {
+    e.preventDefault();
+    if (!otpVerifiedLocal) {
+      Swal.fire(
+        swalOptions("warning", "OTP required", "Please verify the OTP first.")
+      );
+      return;
+    }
+
+    if (!newPasswordValue || !confirmNewPasswordValue) {
+      Swal.fire(
+        swalOptions(
+          "warning",
+          "Missing password",
+          "Please fill both password fields."
+        )
+      );
+      return;
+    }
+    if (newPasswordValue !== confirmNewPasswordValue) {
+      Swal.fire(
+        swalOptions(
+          "error",
+          "Mismatch",
+          "New password and confirmation do not match."
+        )
+      );
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      const emailToUse = formData.email || user.email;
+      const resp = await axios.post(
+        "http://localhost:5000/api/auth/reset-password",
+        {
+          email: emailToUse,
+          otp: otpValue,
+          newPassword: newPasswordValue,
+        }
+      );
+
+      if (resp.data?.success) {
+        setOtpVerifiedLocal(false);
+        setOtpSent(false);
+        setOtpValue("");
+        setNewPasswordValue("");
+        setConfirmNewPasswordValue("");
+        Swal.fire(
+          swalOptions(
+            "success",
+            "Password updated",
+            resp.data.message || "Your password has been updated."
+          )
+        );
+      } else {
+        Swal.fire(
+          swalOptions(
+            "error",
+            "Reset failed",
+            resp.data?.message || "Failed to reset password."
+          )
+        );
+      }
+    } catch (err) {
+      console.error("resetPassword error:", err);
+      Swal.fire(
+        swalOptions(
+          "error",
+          "Error",
+          err.response?.data?.message || "Server error resetting password."
+        )
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  };
 
   return (
     <div className="profile-page">
@@ -124,9 +347,8 @@ const Profile = () => {
                 }`}
                 onClick={() => setActiveTab("security")}
               >
-                <i class="bi bi-lock-fill"></i>
+                <i className="bi bi-lock-fill" />
                 <span style={{ marginLeft: 8 }}>Security & Privacy</span>
-                 
               </button>
             </nav>
           </div>
@@ -142,6 +364,10 @@ const Profile = () => {
                       className="btn btn-secondary"
                       onClick={() => setEditMode(true)}
                     >
+                      <i
+                        className="bi bi-pencil-square"
+                        style={{ marginRight: 8 }}
+                      />{" "}
                       Edit Profile
                     </button>
                   )}
@@ -151,7 +377,6 @@ const Profile = () => {
                   <div className="alert alert-error">{updateError}</div>
                 )}
 
-                {/* Profile View Mode */}
                 {!editMode ? (
                   <div className="profile-details">
                     <div className="detail-group">
@@ -180,7 +405,6 @@ const Profile = () => {
                     </div>
                   </div>
                 ) : (
-                  // Profile Edit Mode (Form)
                   <form onSubmit={handleSubmit} className="profile-form">
                     <div className="form-group">
                       <label htmlFor="name" className="form-label">
@@ -196,6 +420,7 @@ const Profile = () => {
                         required
                       />
                     </div>
+
                     <div className="form-group">
                       <label htmlFor="username" className="form-label">
                         Username
@@ -210,11 +435,11 @@ const Profile = () => {
                         required
                       />
                     </div>
+
                     <div className="form-group">
                       <label htmlFor="email" className="form-label">
                         Email
                       </label>
-                      {/* Email is typically read-only */}
                       <input
                         type="email"
                         id="email"
@@ -224,6 +449,7 @@ const Profile = () => {
                         disabled
                       />
                     </div>
+
                     <div className="form-group">
                       <label htmlFor="phone" className="form-label">
                         Phone Number
@@ -237,83 +463,100 @@ const Profile = () => {
                         onChange={handleChange}
                       />
                     </div>
+
                     <div className="form-group">
-                                      <label htmlFor="location" className="form-label">
-                                        Location
-                                      </label>
-                                      <div className="location-row">
-                                        <i className="bi bi-geo-alt" />
-                                        <input
-                                          type="text"
-                                          id="location"
-                                          name="location"
-                                          className="forms-control location-input"
-                                          value={formData.location}
-                                          onChange={handleChange}
-                                          required
-                                        />
-                                        <button
-                                          type="button"
-                                          className="location-btn"
-                                          onClick={async () => {
-                                            if (!navigator.geolocation) {
-                                              Swal.fire({
-                                                icon: "warning",
-                                                title: "Geolocation",
-                                                text: "Geolocation is not supported by your browser.",
-                                              });
-                                              return;
-                                            }
-
-                                            try {
-                                              setLocationLoading(true);
-                                              navigator.geolocation.getCurrentPosition(
-                                                async (pos) => {
-                                                  const lat = pos.coords.latitude;
-                                                  const lon = pos.coords.longitude;
-                                                  let locationString = `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
-
-                                                  try {
-                                                    // try to get a human-friendly address
-                                                    locationString = await reverseGeocode(lon, lat);
-                                                  } catch (err) {
-                                                    console.error("Reverse geocode failed:", err);
-                                                  }
-
-                                                  setFormData((p) => ({ ...p, location: locationString }));
-                                                  setLocationLoading(false);
-                                                  Swal.fire({
-                                                    icon: "success",
-                                                    title: "Location Updated",
-                                                    text: "Address fetched and filled into the form.",
-                                                  });
-                                                },
-                                                (err) => {
-                                                  console.error("Geolocation error:", err);
-                                                  setLocationLoading(false);
-                                                  Swal.fire({
-                                                    icon: "error",
-                                                    title: "Location error",
-                                                    text: "Unable to get location: " + err.message,
-                                                  });
-                                                },
-                                                { enableHighAccuracy: true, timeout: 10000 }
-                                              );
-                                            } catch (err) {
-                                              console.error("fillCurrentLocation error:", err);
-                                              setLocationLoading(false);
-                                            }
-                                          }}
-                                          disabled={locationLoading}
-                                          title="Use my location"
-                                        >
-                                          <i className="bi bi-geo-fill" />
-                                        </button>
-                                      </div>
-                                      {locationLoading && (
-                                        <small className="location-loading-msg">Getting your location...</small>
-                                      )}
+                      <label htmlFor="location" className="form-label">
+                        Location
+                      </label>
+                      <div className="location-row">
+                        <i className="bi bi-geo-alt" />
+                        <input
+                          type="text"
+                          id="location"
+                          name="location"
+                          className="forms-control location-input"
+                          value={formData.location}
+                          onChange={handleChange}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="location-btn"
+                          onClick={async () => {
+                            if (!navigator.geolocation) {
+                              Swal.fire(
+                                swalOptions(
+                                  "warning",
+                                  "Geolocation",
+                                  "Geolocation is not supported by your browser."
+                                )
+                              );
+                              return;
+                            }
+                            try {
+                              setLocationLoading(true);
+                              navigator.geolocation.getCurrentPosition(
+                                async (pos) => {
+                                  const lat = pos.coords.latitude;
+                                  const lon = pos.coords.longitude;
+                                  let locationString = `Lat: ${lat.toFixed(
+                                    6
+                                  )}, Lng: ${lon.toFixed(6)}`;
+                                  try {
+                                    locationString = await reverseGeocode(
+                                      lon,
+                                      lat
+                                    );
+                                  } catch (err) {
+                                    console.error(
+                                      "Reverse geocode failed:",
+                                      err
+                                    );
+                                  }
+                                  setFormData((p) => ({
+                                    ...p,
+                                    location: locationString,
+                                  }));
+                                  setLocationLoading(false);
+                                  Swal.fire(
+                                    swalOptions(
+                                      "success",
+                                      "Location Updated",
+                                      "Address fetched and filled into the form."
+                                    )
+                                  );
+                                },
+                                (err) => {
+                                  console.error("Geolocation error:", err);
+                                  setLocationLoading(false);
+                                  Swal.fire(
+                                    swalOptions(
+                                      "error",
+                                      "Location error",
+                                      "Unable to get location: " + err.message
+                                    )
+                                  );
+                                },
+                                { enableHighAccuracy: true, timeout: 10000 }
+                              );
+                            } catch (err) {
+                              console.error("fillCurrentLocation error:", err);
+                              setLocationLoading(false);
+                            }
+                          }}
+                          disabled={locationLoading}
+                          title="Use my location"
+                        >
+                          <i className="bi bi-geo-fill" />
+                        </button>
+                      </div>
+                      {locationLoading && (
+                        <small className="location-loading-msg">
+                          Getting your location...
+                        </small>
+                      )}
                     </div>
+
                     <div className="form-group">
                       <label htmlFor="bio" className="form-label">
                         Bio
@@ -354,86 +597,86 @@ const Profile = () => {
               <div className="tab-content">
                 <h2>Security & Privacy</h2>
 
-                {/* --- Placeholder Content (What you see now) --- 
-    <div className="coming-soon">
-      <h3>Password Management</h3>
-      <p>Password change form and multi-factor authentication options will be here.</p>
-    </div>
-    */}
-
-                {/* ---Password Change Form  --- */}
                 <div className="security-section">
                   <h3>Change Password (OTP)</h3>
-                  <form className="password-form">
+
+                  <form className="password-form" onSubmit={resetPassword}>
                     <div className="form-group otp-group">
                       <label htmlFor="otp" className="form-label">
-                        OTP (sent to your registered phone/email)
+                        OTP (sent to your registered email)
                       </label>
-                      <div className="otp-row" style={{ display: "flex", gap: "8px" }}>
+
+                      <div
+                        className="otp-row"
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          alignItems: "center",
+                        }}
+                      >
                         <input
                           type="text"
                           id="otp"
                           name="otp"
                           className="form-control"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value)}
+                          value={otpValue}
+                          onChange={(e) => setOtpValue(e.target.value)}
                           placeholder="Enter OTP"
                           required
                         />
+
                         <button
                           type="button"
                           className="btn btn-secondary otp-btn"
-                          onClick={async () => {
-                            // Send OTP to user's registered email via backend
-                            const emailToUse = formData.email || user?.email;
-                            if (!emailToUse) {
-                              Swal.fire({
-                                icon: "warning",
-                                title: "No email",
-                                text: "Please ensure your account has a valid email to receive OTP.",
-                              });
-                              return;
-                            }
-
-                            try {
-                              setSendingOtp(true);
-                              const resp = await axios.post(
-                                "http://localhost:5000/api/auth/send-otp",
-                                { email: emailToUse }
-                              );
-
-                              if (resp.data?.success) {
-                                setOtpSent(true);
-                                Swal.fire({
-                                  icon: "success",
-                                  title: "OTP Sent",
-                                  text: resp.data.message || "OTP sent to your email.",
-                                });
-                              } else {
-                                Swal.fire({
-                                  icon: "error",
-                                  title: "Send Failed",
-                                  text: resp.data?.message || "Failed to send OTP.",
-                                });
-                              }
-                            } catch (err) {
-                              console.error("Send OTP error:", err);
-                              Swal.fire({
-                                icon: "error",
-                                title: "Error",
-                                text: err.response?.data?.message || "Error sending OTP."
-                              });
-                            } finally {
-                              setSendingOtp(false);
-                            }
-                          }}
-                          disabled={sendingOtp || otpSent}
+                          onClick={sendOrVerifyOtp}
+                          disabled={
+                            sendingOtp ||
+                            verifyingOtp ||
+                            (otpSent && otpVerifiedLocal)
+                          }
+                          title={otpSent ? "Verify OTP" : "Send OTP"}
                         >
-                          {sendingOtp ? "Sending..." : otpSent ? "Sent" : "Send OTP"}
+                          {/* Switch text + icon based on state */}
+                          {!otpSent ? (
+                            <>
+                              <i
+                                className="bi bi-send-check"
+                                style={{ marginRight: 8 }}
+                              />
+                              Send OTP
+                            </>
+                          ) : !otpVerifiedLocal ? (
+                            <>
+                              <i
+                                className="bi bi-check2-circle"
+                                style={{ marginRight: 8 }}
+                              />
+                              Verify OTP
+                            </>
+                          ) : (
+                            <>
+                              <i
+                                className="bi bi-lock-fill"
+                                style={{ marginRight: 8 }}
+                              />
+                              Verified
+                            </>
+                          )}
                         </button>
                       </div>
+
                       {otpSent && (
-                        <small className="help-text">OTP sent — enter it above to verify.</small>
+                        <small className="help-text">
+                          OTP sent — click Verify OTP to validate it.
+                        </small>
+                      )}
+                      {otpVerifiedLocal && (
+                        <small
+                          className="help-text"
+                          style={{ color: "#16594f" }}
+                        >
+                          OTP verified — you can now change your password.
+                        </small>
                       )}
                     </div>
 
@@ -446,10 +689,14 @@ const Profile = () => {
                         id="new-password"
                         name="newPassword"
                         className="form-control"
+                        value={newPasswordValue}
+                        onChange={(e) => setNewPasswordValue(e.target.value)}
                         required
                         minLength="6"
+                        disabled={!otpVerifiedLocal}
                       />
                     </div>
+
                     <div className="form-group">
                       <label htmlFor="confirm-password" className="form-label">
                         Confirm New Password
@@ -459,12 +706,22 @@ const Profile = () => {
                         id="confirm-password"
                         name="confirmPassword"
                         className="form-control"
+                        value={confirmNewPasswordValue}
+                        onChange={(e) =>
+                          setConfirmNewPasswordValue(e.target.value)
+                        }
                         required
                         minLength="6"
+                        disabled={!otpVerifiedLocal}
                       />
                     </div>
-                    <button type="submit" className="btn btn-primary">
-                      Update Password
+
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={!otpVerifiedLocal || resettingPassword}
+                    >
+                      {resettingPassword ? "Updating..." : "Update Password"}
                     </button>
                   </form>
                 </div>
