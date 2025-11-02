@@ -3,9 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ReportIssue.css";
 import "ol/ol.css";
-import Swal from "sweetalert2";
-
-// const Swal = window.Swal;
+import Swal from "sweetalert2"; // use npm import (ensure package installed)
 
 // OpenLayers Imports
 import Map from "ol/Map";
@@ -18,10 +16,10 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
-import { toLonLat, fromLonLat } from "ol/proj";
+import { toLonLat } from "ol/proj";
 
 // Utility Imports
-import { reverseGeocode, initialCenter } from "../utils/MapUtils";
+import { reverseGeocode, getInitialCenterForAddress } from "../utils/MapUtils";
 
 const API_URL = "http://localhost:5000/api/issues";
 
@@ -66,8 +64,9 @@ const ReportIssue = () => {
     { value: "high", label: "High", icon: "bi-arrow-up-circle" },
   ];
 
-  // Initialize map
+  // Initialize map: calculate center from user's stored address (if any) else default
   useEffect(() => {
+    let mounted = true;
     const markerStyle = new Style({
       image: new Icon({
         anchor: [0.5, 1],
@@ -75,41 +74,61 @@ const ReportIssue = () => {
       }),
     });
 
-    const initialMap = new Map({
-      target: mapElement.current,
-      layers: [
-        new TileLayer({ source: new OSM() }),
-        new VectorLayer({ source: markerSource, style: markerStyle }),
-      ],
-      view: new View({
-        center: initialCenter,
-        zoom: 12,
-      }),
-    });
+    // async initializer so we can forward-geocode user's address if available
+    const initMap = async () => {
+      // get projected center using user's saved location (user.location) if available
+      const centerProjected = await getInitialCenterForAddress(user?.location);
 
-    setMap(initialMap);
-
-    initialMap.on("click", async (evt) => {
-      const coords = toLonLat(evt.coordinate);
-      setSelectedLocation(coords);
-
-      markerSource.clear();
-      const marker = new Feature({
-        geometry: new Point(evt.coordinate),
+      const initialMap = new Map({
+        target: mapElement.current,
+        layers: [
+          new TileLayer({ source: new OSM() }),
+          new VectorLayer({ source: markerSource, style: markerStyle }),
+        ],
+        view: new View({
+          center: centerProjected,
+          zoom: 12,
+        }),
       });
-      markerSource.addFeature(marker);
 
-      setLoading(true);
-      const addressString = await reverseGeocode(coords[0], coords[1]);
-      setFormData((prev) => ({
-        ...prev,
-        address: addressString,
-      }));
-      setLoading(false);
-    });
+      if (!mounted) {
+        initialMap.setTarget(undefined);
+        return;
+      }
 
-    return () => initialMap.setTarget(undefined);
-  }, [markerSource]);
+      setMap(initialMap);
+
+      initialMap.on("click", async (evt) => {
+        const coords = toLonLat(evt.coordinate);
+        setSelectedLocation(coords);
+
+        markerSource.clear();
+        const marker = new Feature({
+          geometry: new Point(evt.coordinate),
+        });
+        markerSource.addFeature(marker);
+
+        setLoading(true);
+        const addressString = await reverseGeocode(coords[0], coords[1]);
+        setFormData((prev) => ({
+          ...prev,
+          address: addressString,
+        }));
+        setLoading(false);
+      });
+    };
+
+    initMap();
+
+    return () => {
+      mounted = false;
+      if (map) {
+        map.setTarget(undefined);
+      }
+    };
+    // we intentionally include user?.location so map recenters when logged-in user's location changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markerSource, user?.location]);
 
   const handleChange = (e) => {
     setFormData({
@@ -255,6 +274,7 @@ const ReportIssue = () => {
           </h1>
           <p>Help make your community cleaner and safer</p>
         </div>
+
         <div className="report-content-grid">
           {/* Form Section */}
           <div className="form-section">
@@ -422,6 +442,7 @@ const ReportIssue = () => {
               </div>
             </form>
           </div>
+
           {/* Map Section */}
           <div className="form-section map-card">
             <h3>
