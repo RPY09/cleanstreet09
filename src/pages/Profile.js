@@ -399,58 +399,70 @@ const Profile = () => {
                       <label htmlFor="name" className="form-label">
                         Full Name
                       </label>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        className="form-control"
-                        value={formData.name}
-                        onChange={handleChange}
-                        required
-                      />
+                      <div className="input-group">
+                        <i className="bi bi-person" />
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          className="form-control"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
                     </div>
 
                     <div className="form-group">
                       <label htmlFor="username" className="form-label">
                         Username
                       </label>
-                      <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        className="form-control"
-                        value={formData.username}
-                        onChange={handleChange}
-                        required
-                      />
+                      <div className="input-group">
+                        <i className="bi bi-at" />
+                        <input
+                          type="text"
+                          id="username"
+                          name="username"
+                          className="form-control"
+                          value={formData.username}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
                     </div>
 
                     <div className="form-group">
                       <label htmlFor="email" className="form-label">
                         Email
                       </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        className="form-control"
-                        value={formData.email}
-                        disabled
-                      />
+                      <div className="input-group">
+                        <i className="bi bi-envelope" />
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          className="form-control"
+                          value={formData.email}
+                          disabled
+                        />
+                      </div>
                     </div>
 
                     <div className="form-group">
                       <label htmlFor="phone" className="form-label">
                         Phone Number
                       </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        className="form-control"
-                        value={formData.phone}
-                        onChange={handleChange}
-                      />
+                      <div className="input-group">
+                        <i className="bi bi-telephone" />
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          className="form-control"
+                          value={formData.phone}
+                          onChange={handleChange}
+                        />
+                      </div>
                     </div>
 
                     <div className="form-group">
@@ -632,7 +644,7 @@ const Profile = () => {
                                 className="bi bi-send-check"
                                 style={{ marginRight: 8 }}
                               />
-                              Send OTP
+                              Send
                             </>
                           ) : !otpVerifiedLocal ? (
                             <>
@@ -640,7 +652,7 @@ const Profile = () => {
                                 className="bi bi-check2-circle"
                                 style={{ marginRight: 8 }}
                               />
-                              Verify OTP
+                              Verify
                             </>
                           ) : (
                             <>
