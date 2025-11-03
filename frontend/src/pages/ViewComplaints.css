@@ -1,0 +1,256 @@
+.view-complaints-page {
+  padding: 2rem 0;
+  min-height: calc(100vh - 70px);
+}
+
+.complaints-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.complaints-header h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+
+.complaints-header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.complaints-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.complaint-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e9ecef;
+}
+
+.complaint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.complaint-header h3 {
+  color: #333;
+  font-size: 1.25rem;
+  margin: 0;
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-reported {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-in-progress {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-resolved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.complaint-description {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.complaint-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.location {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.time {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.complaint-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.voting-section {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.vote-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.vote-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.vote-btn.upvote:hover {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.vote-btn.downvote:hover {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.comment-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #007bff;
+  border-radius: 6px;
+  background: white;
+  color: #007bff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.comment-btn:hover {
+  background: #007bff;
+  color: white;
+}
+
+.comments-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.comments-list {
+  margin-bottom: 1.5rem;
+}
+
+.comment {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comment-header strong {
+  color: #333;
+}
+
+.comment-time {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.comment-content {
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.no-comments {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.add-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comment-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+@media (max-width: 768px) {
+  .view-complaints-page {
+    padding: 1rem 0;
+  }
+  
+  .complaint-card {
+    padding: 1.5rem;
+  }
+  
+  .complaint-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .complaint-header h3 {
+    margin-right: 0;
+  }
+  
+  .complaint-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .complaint-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .voting-section {
+    justify-content: center;
+  }
+}
