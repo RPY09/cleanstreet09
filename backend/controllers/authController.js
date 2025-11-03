@@ -292,10 +292,6 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
-/**
- * New endpoint: verifyOtpOnly
- * Verifies OTP but DOES NOT delete it. Used to "unlock" UI for password reset.
- */
 exports.verifyOtpOnly = async (req, res) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
@@ -321,11 +317,6 @@ exports.verifyOtpOnly = async (req, res) => {
   }
 };
 
-/**
- * New endpoint: resetPasswordWithOtp
- * Resets a user's password using email + OTP + newPassword.
- * Deletes OTP once used.
- */
 exports.resetPasswordWithOtp = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
@@ -346,12 +337,10 @@ exports.resetPasswordWithOtp = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "User not found for supplied email.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "User not found for supplied email.",
+      });
     }
 
     // Hash and update password
