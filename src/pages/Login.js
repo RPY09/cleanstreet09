@@ -46,13 +46,40 @@ const Login = () => {
 
   // SweetAlert2 helpers
   const swalError = (title = "Error", text = "") =>
-    Swal.fire({ icon: "error", title, text, confirmButtonColor: "#163832" });
+    Swal.fire({
+      icon: "error",
+      title,
+      text,
+      background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+      color: "#1B1B1B",
+      confirmButtonColor: "#005347",
+      timer: 3000,
+      timerProgressBar: true,
+    });
 
   const swalSuccess = (title = "Success", text = "") =>
-    Swal.fire({ icon: "success", title, text, confirmButtonColor: "#163832" });
+    Swal.fire({
+      icon: "success",
+      title,
+      text,
+      background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+      color: "#1B1B1B",
+      confirmButtonColor: "#005347",
+      timer: 3000,
+      timerProgressBar: true,
+    });
 
   const swalInfo = (title = "Info", text = "") =>
-    Swal.fire({ icon: "info", title, text, confirmButtonColor: "#163832" });
+    Swal.fire({
+      icon: "info",
+      title,
+      text,
+      background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+      color: "#1B1B1B",
+      confirmButtonColor: "#005347",
+      timer: 3000,
+      timerProgressBar: true,
+    });
 
   // --- LOGIN SUBMISSION ---
   const submitLogin = async (e) => {

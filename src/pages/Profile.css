@@ -497,7 +497,11 @@ body,
 /* detail groups */
 .detail-group {
   padding: 10px 0;
-  border-bottom: 1px solid rgba(6, 34, 31, 0.04);
+  border-bottom: 1px solid rgba(6, 34, 31, 0.223);
+}
+.detail-group label {
+  font-weight: 450;
+  /* text-decoration: underline dotted; */
 }
 .detail-group:last-child {
   border-bottom: none;
