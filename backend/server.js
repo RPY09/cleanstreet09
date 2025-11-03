@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -5,6 +6,8 @@ const cors = require("cors");
 const cloudinary = require("cloudinary").v2;
 const authRoutes = require("./routes/authRoutes");
 const issueRoutes = require("./routes/issueRoutes");
+// <-- added utilsRoutes require
+const utilsRoutes = require("./routes/utilsRoutes");
 
 dotenv.config(); // Load environment variables from .env
 
@@ -21,6 +24,7 @@ app.use(cors()); // Allows frontend (on different port) to access backend
 app.use(express.json()); // Allows parsing of JSON request body
 app.use("/api/auth", authRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/utils", utilsRoutes);
 
 // Database Connection
 const connectDB = async () => {
@@ -34,9 +38,6 @@ const connectDB = async () => {
 };
 
 connectDB();
-
-// Routes
-app.use("/api/auth", authRoutes); // Sets up base route /api/auth
 
 // Server Listening
 const PORT = process.env.PORT || 5000;

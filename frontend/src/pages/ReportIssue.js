@@ -17,10 +17,12 @@ import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
 import { toLonLat } from "ol/proj";
 
-// Utility Imports
+// Utility Imports (uses backend proxy endpoints)
 import { reverseGeocode, getInitialCenterForAddress } from "../utils/MapUtils";
 
-const API_URL = "http://localhost:5000/api/issues";
+const API_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api/issues`
+  : "http://localhost:5000/api/issues";
 
 const ReportIssue = () => {
   const { user } = useAuth();
@@ -44,6 +46,7 @@ const ReportIssue = () => {
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]); // array of object URLs
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null); // percent number or null
 
   const issueTypes = [
     { value: "pothole", label: "Pothole", icon: "bi-cone-striped" },
@@ -73,7 +76,6 @@ const ReportIssue = () => {
       }),
     });
 
-    // async initializer so we can forward-geocode user's address if available
     const initMap = async () => {
       const centerProjected = await getInitialCenterForAddress(user?.location);
 
@@ -106,13 +108,20 @@ const ReportIssue = () => {
         });
         markerSource.addFeature(marker);
 
-        setLoading(true);
-        const addressString = await reverseGeocode(coords[0], coords[1]);
-        setFormData((prev) => ({
-          ...prev,
-          address: addressString,
-        }));
-        setLoading(false);
+        // attempt to reverse geocode (backend proxy)
+        try {
+          const addressString = await reverseGeocode(coords[0], coords[1]);
+          setFormData((prev) => ({ ...prev, address: addressString }));
+        } catch (e) {
+          // reverseGeocode returns fallback string on error already; still handle errors gracefully
+          console.error("Reverse geocode failed:", e);
+          setFormData((prev) => ({
+            ...prev,
+            address: `Lat: ${coords[1].toFixed(6)}, Lon: ${coords[0].toFixed(
+              6
+            )}`,
+          }));
+        }
       });
     };
 
@@ -130,27 +139,28 @@ const ReportIssue = () => {
   }, [markerSource, user?.location]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
   // Handle up to 3 images
   const handleImageChange = (e) => {
     const filesSelected = Array.from(e.target.files).slice(0, 3);
-    // Revoke previous previews
+
+    // revoke previous previews
     imagePreviews.forEach((url) => URL.revokeObjectURL(url));
 
     setImageFiles(filesSelected);
     setImagePreviews(filesSelected.map((file) => URL.createObjectURL(file)));
+
     // reset input value so same file can be reselected later if removed
     e.target.value = "";
   };
 
   // Remove a selected image by index
   const removeImage = (index) => {
-    // revoke object URL
     const urlToRevoke = imagePreviews[index];
     if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
 
@@ -190,15 +200,13 @@ const ReportIssue = () => {
     }
 
     setLoading(true);
+    setUploadProgress(null);
 
     const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      data.append(key, formData[key]);
-    });
+    Object.keys(formData).forEach((key) => data.append(key, formData[key]));
 
-    // Append up to 3 images
     imageFiles.forEach((file) => {
-      data.append("images", file); // backend should expect 'images' as array
+      data.append("images", file);
     });
 
     data.append("latitude", selectedLocation[1]);
@@ -223,6 +231,15 @@ const ReportIssue = () => {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
+        },
+        timeout: 120000, // 2 minutes
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          }
         },
       });
 
@@ -251,11 +268,16 @@ const ReportIssue = () => {
       setImagePreviews([]);
       setSelectedLocation(null);
       markerSource.clear();
+      setUploadProgress(null);
+      // Optionally clear marker on map (already cleared above)
     } catch (err) {
+      console.error("Issue submit error:", err, {
+        response: err?.response?.data,
+      });
       const errorMessage =
         err.response?.data?.message ||
+        err.message ||
         "Failed to connect to server or report issue.";
-
       Swal.fire({
         icon: "error",
         title: "Submission Failed",
@@ -266,6 +288,7 @@ const ReportIssue = () => {
       });
     } finally {
       setLoading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -449,23 +472,55 @@ const ReportIssue = () => {
                     </div>
                   ))}
                 </div>
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <i className="bi bi-hourglass-split spinning"></i>{" "}
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-send"></i> Submit Issue
-                      </>
-                    )}
-                  </button>
+
+                <div style={{ minWidth: 160 }}>
+                  {uploadProgress !== null && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#06332e",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Uploading: {uploadProgress}%
+                      </div>
+                      <div
+                        style={{
+                          background: "#e6efe9",
+                          borderRadius: 6,
+                          height: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${uploadProgress}%`,
+                            height: "100%",
+                            background: "#16594f",
+                            borderRadius: 6,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="form-actions">
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <i className="bi bi-hourglass-split spinning"></i>{" "}
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-send"></i> Submit Issue
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
