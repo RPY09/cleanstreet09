@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const OTP = require("../models/OTP");
 const nodemailer = require("nodemailer");
+const { extractPostalCode } = require("../utils/extractPostalCode");
 
 // Helper function to generate a JWT
 const generateToken = (id) => {
@@ -33,12 +34,14 @@ exports.registerUser = async (req, res) => {
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    const postalCode = extractPostalCode(location);
     user = new User({
       name,
       username,
       email,
       phone,
       location,
+      postalCode,
       password: hashedPassword,
       role: email.includes("@admin.com") ? "admin" : "user",
     });
@@ -54,6 +57,7 @@ exports.registerUser = async (req, res) => {
         username: user.username,
         email: user.email,
         location: user.location,
+        postalCode: user.postalCode,
         role: user.role,
         memberSince: user.memberSince,
       },
@@ -180,6 +184,7 @@ exports.updateUserProfile = async (req, res) => {
       // user.email = req.body.email || user.email; // intentionally not allowed
       user.phone = req.body.phone || user.phone;
       user.location = req.body.location || user.location;
+      user.postalCode = extractPostalCode(req.body.location) || user.postalCode;
       user.bio = req.body.bio || user.bio;
 
       const updatedUser = await user.save();
@@ -324,7 +329,7 @@ exports.sendOtp = async (req, res) => {
     `,
     });
 
-    res.json({ success: true, message: `OTP sent to your ${email}.` });
+    res.json({ success: true, message: `OTP sent to ${email}.` });
   } catch (error) {
     console.error("Send OTP Error:", error);
     res.status(500).json({ success: false, message: "Error sending OTP." });

@@ -9,6 +9,11 @@ const issueSchema = new mongoose.Schema({
     default: "medium",
   },
   address: { type: String, required: true },
+  postalCode: {
+    type: String,
+    trim: true,
+    required: false,
+  },
   landmark: { type: String },
   description: { type: String, required: true },
   // MULTI-IMAGE SUPPORT: Array of image URLs from Cloudinary

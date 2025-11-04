@@ -1,5 +1,5 @@
 const express = require("express");
-const { reportIssue } = require("../controllers/issueController");
+const { reportIssue, getAllIssues } = require("../controllers/issueController");
 const { protect } = require("../middleware/authMiddleware");
 const multer = require("multer");
 
@@ -11,5 +11,6 @@ const upload = multer({
 });
 
 router.post("/", protect, upload.array("images", 3), reportIssue);
+router.get("/", protect, getAllIssues);
 
 module.exports = router;

@@ -24,7 +24,8 @@ app.use(cors()); // Allows frontend (on different port) to access backend
 app.use(express.json()); // Allows parsing of JSON request body
 app.use("/api/auth", authRoutes);
 app.use("/api/issues", issueRoutes);
-app.use("/api/utils", utilsRoutes);
+// app.use("/api/utils", utilsRoutes);
+app.use("/api/utils", require("./routes/utilsRoutes"));
 
 // Database Connection
 const connectDB = async () => {

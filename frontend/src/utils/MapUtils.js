@@ -21,7 +21,7 @@ export const reverseGeocode = async (lon, lat) => {
     const url = `${BACKEND}/api/utils/reverse`;
     const resp = await axios.get(url, {
       params: { lat, lon },
-      timeout: 10000,
+      timeout: 20000,
     });
 
     if (resp.data?.success && resp.data.data?.display_name) {
@@ -71,7 +71,7 @@ export const forwardGeocode = async (address) => {
     const url = `${BACKEND}/api/utils/forward`;
     const resp = await axios.get(url, {
       params: { q: address },
-      timeout: 10000,
+      timeout: 20000,
     });
 
     if (

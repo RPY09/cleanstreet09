@@ -1,6 +1,8 @@
 const Issue = require("../models/Issue");
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
+const { extractPostalCode } = require("../utils/extractPostalCode");
+const User = require("../models/user");
 
 const uploadBufferToCloudinary = (
   fileBuffer,
@@ -48,11 +50,11 @@ exports.reportIssue = async (req, res) => {
     req.body;
   const imageFiles = req.files; // array of files from multer
 
-  console.log(
-    `REPORT ISSUE: fields - title=${title}, issueType=${issueType}, images=${
-      imageFiles?.length || 0
-    }`
-  );
+  // console.log(
+  //   `REPORT ISSUE: fields - title=${title}, issueType=${issueType}, images=${
+  //     imageFiles?.length || 0
+  //   }`
+  // );
 
   if (!title || !issueType || !address || !description) {
     console.log("REPORT ISSUE: validation failed");
@@ -68,18 +70,18 @@ exports.reportIssue = async (req, res) => {
     if (imageFiles && imageFiles.length > 0) {
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
-        console.log(
-          `REPORT ISSUE: uploading image ${i + 1}/${imageFiles.length} name=${
-            file.originalname
-          } size=${file.size}`
-        );
+        // console.log(
+        //   `REPORT ISSUE: uploading image ${i + 1}/${imageFiles.length} name=${
+        //     file.originalname
+        //   } size=${file.size}`
+        // );
         try {
           const url = await uploadBufferToCloudinary(
             file.buffer,
             { folder: "cleanstreet_issues" },
             30000
           );
-          console.log(`REPORT ISSUE: uploaded image ${i + 1} -> ${url}`);
+          // console.log(`REPORT ISSUE: uploaded image ${i + 1} -> ${url}`);
           uploadedImages.push(url);
         } catch (uploadErr) {
           console.error(
@@ -96,11 +98,13 @@ exports.reportIssue = async (req, res) => {
     }
 
     console.log("REPORT ISSUE: creating DB record...");
+    const postalCode = extractPostalCode(address);
     const newIssue = await Issue.create({
       title,
       issueType,
       priority,
       address,
+      postalCode,
       landmark,
       description,
       imageUrls: uploadedImages,
@@ -120,5 +124,29 @@ exports.reportIssue = async (req, res) => {
       message: "Server error during issue submission.",
       details: error.message,
     });
+  }
+};
+
+exports.getAllIssues = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const issues = await Issue.find();
+
+    if (user?.postalCode) {
+      issues.sort((a, b) => {
+        const aMatch = a.postalCode === user.postalCode;
+        const bMatch = b.postalCode === user.postalCode;
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    }
+
+    res.status(200).json({ success: true, issues });
+  } catch (error) {
+    console.error("Error fetching issues:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };

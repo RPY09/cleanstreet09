@@ -1,81 +1,99 @@
 const axios = require("axios");
 
-// Server-side proxy for Nominatim reverse geocode
-// GET /api/utils/reverse?lat=...&lon=...
+// ✅ Reverse Geocode
 exports.reverseGeocode = async (req, res) => {
-  const { lat, lon } = req.query;
-  if (!lat || !lon)
-    return res
-      .status(400)
-      .json({ success: false, message: "lat and lon required" });
-
   try {
+    const { lat, lon } = req.query;
+
+    if (!lat || !lon) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing coordinates" });
+    }
+
     const response = await axios.get(
       "https://nominatim.openstreetmap.org/reverse",
       {
-        params: {
-          lat,
-          lon,
-          format: "json",
-          "accept-language": "en",
-          zoom: 18,
-        },
+        params: { lat, lon, format: "json", addressdetails: 1 },
         headers: {
-          // IMPORTANT: Provide a descriptive User-Agent and contact per Nominatim usage policy
-          "User-Agent": "CleanStreet/1.0 (contact@example.com)",
-          Referer:
-            req.get("origin") || req.get("referer") || "http://localhost",
+          "User-Agent": "CleanStreetApp/1.0 (contact@cleanstreet.local)",
+          Accept: "application/json",
         },
-        timeout: 10000,
+        timeout: 15000,
       }
     );
 
-    return res.json({ success: true, data: response.data });
-  } catch (err) {
-    console.error("utilsController.reverseGeocode error:", err.message || err);
-    return res.status(500).json({
+    return res.status(200).json({ success: true, data: response.data });
+  } catch (error) {
+    console.error("Reverse Geocode Error:", error.message);
+    return res.status(200).json({
       success: false,
-      message: "Geocoding failed",
-      details: err.message,
+      data: {
+        display_name: `Lat: ${req.query.lat}, Lon: ${req.query.lon}`,
+      },
+      message: "Nominatim failed — returned fallback data",
     });
   }
 };
 
-// Server-side proxy for Nominatim forward geocode (address -> lon,lat)
-// GET /api/utils/forward?q=address
+//  Forward Geocode
 exports.forwardGeocode = async (req, res) => {
-  const { q } = req.query;
-  if (!q)
-    return res
-      .status(400)
-      .json({ success: false, message: "q (query) required" });
-
   try {
-    const response = await axios.get(
-      "https://nominatim.openstreetmap.org/search",
-      {
-        params: {
-          q,
-          format: "json",
-          "accept-language": "en",
-          limit: 1,
-        },
-        headers: {
-          "User-Agent": "CleanStreet/1.0 (contact@example.com)",
-          Referer:
-            req.get("origin") || req.get("referer") || "http://localhost",
-        },
-        timeout: 10000,
-      }
-    );
+    const address = req.query.address || req.query.q;
+    if (!address) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing address or query (q)" });
+    }
 
-    return res.json({ success: true, data: response.data });
-  } catch (err) {
-    console.error("utilsController.forwardGeocode error:", err.message || err);
-    return res.status(500).json({
+    const nominatimUrl = "https://nominatim.openstreetmap.org/search";
+    let response;
+
+    try {
+      response = await axios.get(nominatimUrl, {
+        params: { q: address, format: "json", limit: 1 },
+        headers: {
+          "User-Agent": "CleanStreetApp/1.0 (contact@cleanstreet.local)",
+          Accept: "application/json",
+        },
+        timeout: 30000, // ⏱ 30s timeout
+      });
+    } catch (innerErr) {
+      console.warn("Nominatim primary request failed:", innerErr.message);
+      // fallback: try again after 1s delay
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        response = await axios.get(nominatimUrl, {
+          params: { q: address, format: "json", limit: 1 },
+          headers: {
+            "User-Agent": "CleanStreetApp/1.0 (contact@cleanstreet.local)",
+            Accept: "application/json",
+          },
+          timeout: 30000,
+        });
+      } catch (finalErr) {
+        console.error("Fallback geocode failed:", finalErr.message);
+        return res.status(200).json({
+          success: false,
+          data: {},
+          message: "Geocoding failed — fallback used",
+        });
+      }
+    }
+
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      return res.status(200).json({ success: true, data: response.data });
+    }
+
+    return res
+      .status(404)
+      .json({ success: false, message: "Address not found" });
+  } catch (error) {
+    console.error("Forward Geocode Error:", error.message);
+    return res.status(200).json({
       success: false,
-      message: "Forward geocoding failed",
-      details: err.message,
+      data: {},
+      message: "Geocoding failed — returned fallback data",
     });
   }
 };
