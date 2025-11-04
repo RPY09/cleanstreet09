@@ -300,7 +300,7 @@ exports.sendOtp = async (req, res) => {
                 <div class="content-box">
                     <h1>CleanStreet OTP</h1>
 
-                    <p>You requested a OTP  for your *<b>CleanStreet</b>** account.</p>
+                    <p>You requested a OTP  for your **<b>CleanStreet</b>** account.</p>
 
                     <div class="otp-section">
                         <p>Your One-Time Password (OTP) is:</p>
