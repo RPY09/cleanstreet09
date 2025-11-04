@@ -219,7 +219,7 @@ exports.sendOtp = async (req, res) => {
     if (!user) {
       return res.json({
         success: true,
-        message: "If an account exists, an OTP has been sent.",
+        message: "This account doesn't exists, Please register to CleanStreet.",
       });
     }
 
@@ -286,7 +286,6 @@ exports.sendOtp = async (req, res) => {
                     border: 2px dashed #8EB69B; 
                     border-radius: 5px;
                 }
-                
                 .footer {
                     text-align: center;
                     margin-top: 20px;
@@ -325,7 +324,7 @@ exports.sendOtp = async (req, res) => {
     `,
     });
 
-    res.json({ success: true, message: "OTP sent to your email." });
+    res.json({ success: true, message: `OTP sent to your ${email}.` });
   } catch (error) {
     console.error("Send OTP Error:", error);
     res.status(500).json({ success: false, message: "Error sending OTP." });
