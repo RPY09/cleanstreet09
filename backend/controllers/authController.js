@@ -236,12 +236,93 @@ exports.sendOtp = async (req, res) => {
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "CleanStreet Password Reset OTP",
+      subject: "CleanStreet Password OTP",
       html: `
-        <p>You requested a password reset for your CleanStreet account.</p>
-        <h2 style="color: #28a745;">Your OTP is: <b>${otp}</b></h2>
-        <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
-      `,
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>CleanStreet OTP</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #051F20; 
+                    color: #DAF1DE; 
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    background-color: #0B2B26; 
+                    border-radius: 10px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                    margin-top: 40px;
+                    margin-bottom: 40px;
+                }
+                .content-box {
+                    background-color: #DAF1DE; 
+                    padding: 30px;
+                    border-radius: 8px;
+                    color: #163832; 
+                }
+                h1 {
+                    color: #051F20; 
+                    text-align: center;
+                }
+                .otp-section {
+                    text-align: center;
+                    padding: 20px 0;
+                }
+                .otp-code {
+                    color: #235347; 
+                    font-size: 32px;
+                    font-weight: bold;
+                    display: inline-block;
+                    padding: 10px 20px;
+                    margin: 10px 0;
+                    border: 2px dashed #8EB69B; 
+                    border-radius: 5px;
+                }
+                
+                .footer {
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 12px;
+                    color: #8EB69B; 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="content-box">
+                    <h1>CleanStreet OTP</h1>
+
+                    <p>You requested a OTP  for your *<b>CleanStreet</b>** account.</p>
+
+                    <div class="otp-section">
+                        <p>Your One-Time Password (OTP) is:</p>
+                        <div class="otp-code">${otp}</div>
+                    </div>
+
+                    <p>This code will expire in **10 minutes**. Please enter it on the website to complete your OTP verification.</p>
+
+                    <h3>About CleanStreet</h3>
+                    <p>CleanStreet is your dedicated platform for **community well-being and environmental stewardship**. We make it easy for residents to report local issues—from litter and graffiti to broken infrastructure—and connect directly with local services to get them resolved quickly and efficiently. Together, we can keep our neighborhoods clean and thriving!</p>
+
+                    <p>If you did not request this, please ignore this email. Your password will remain secure.</p>
+                    <p>Thank you <b>${user.name}</b> for joining us to make a better society.</p>
+                </div>
+                
+                <div class="footer">
+                    &copy; 2025 CleanStreet. All rights reserved.
+                </div>
+            </div>
+        </body>
+        </html>
+    `,
     });
 
     res.json({ success: true, message: "OTP sent to your email." });
