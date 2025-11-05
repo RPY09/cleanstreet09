@@ -61,17 +61,72 @@ body.modal-open {
 
 /* Card */
 .complaint-card {
-  background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
-  border-radius: var(--card-radius);
+  position: relative;
+  background: linear-gradient(var(--g-accent), var(--g-pale));
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  box-shadow: var(--card-shadow);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  display: flex;
-  flex-direction: column;
+  transition: transform 0.2s ease;
 }
+
 .complaint-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(3, 20, 18, 0.44);
+  transform: translateY(-3px);
+}
+
+/* Top row for badge + time */
+.complaint-top-row {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+/* Allow inner elements to be visible */
+.badge-group {
+  display: flex;
+  gap: 4px;
+  pointer-events: all;
+}
+
+/* Priority badge */
+.priority-badge {
+  display: inline-block;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 6px 10px 10px 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  color: #fff !important;
+  background-color: #999 !important; /* fallback color */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  pointer-events: all;
+  z-index: 2;
+}
+
+/* Time label */
+.report-time {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #004c3f;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 8px;
+  border-radius: 6px;
+  pointer-events: all;
 }
 
 /* Image */
@@ -85,6 +140,18 @@ body.modal-open {
     rgba(5, 31, 32, 0.04),
     rgba(5, 31, 32, 0.06)
   );
+}
+.complaint-description {
+  color: #194b3f;
+  font-size: 14px;
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* Change this number for how many lines to show */
+  -webkit-box-orient: vertical;
+  line-height: 1.4em;
+  max-height: 1.4em; /* 1 line height * number of lines */
 }
 
 /* Content */
@@ -145,6 +212,22 @@ body.modal-open {
   border: none;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* Dropdown filters */
+select {
+  background: var(--g-3);
+  color: var(--g-pale);
+  border: 1px solid var(--g-accent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-left: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+select:hover {
+  background: var(--g-4);
 }
 
 /* Divider style */

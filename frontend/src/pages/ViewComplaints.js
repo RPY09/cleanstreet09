@@ -3,12 +3,30 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ViewComplaints.css";
 
+// Placeholder for date-fns (You should install and import this)
+const formatDistanceToNow = (date) => {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return interval + " years ago";
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return interval + " months ago";
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return interval + " days ago";
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return interval + " hours ago";
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return interval + " minutes ago";
+  return "just now";
+};
+
 const BACKEND = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const ViewComplaints = () => {
   const { user } = useAuth();
   const [myAreaReports, setMyAreaReports] = useState([]);
   const [otherReports, setOtherReports] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("priority");
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [selectedComplaintForComments, setSelectedComplaintForComments] =
     useState(null);
@@ -59,12 +77,14 @@ const ViewComplaints = () => {
       });
 
       if (res.data?.success) {
-        const myArea = res.data.myAreaReports || [];
-        const others = res.data.otherReports || [];
+        // Backend now returns localIssues and otherIssues (renamed in frontend for clarity)
+        const myArea = res.data.localIssues || [];
+        const others = res.data.otherIssues || [];
 
         setMyAreaReports(myArea);
         setOtherReports(others);
 
+        // Map all comments for local state cache
         const map = {};
         [...myArea, ...others].forEach((issue) => {
           const id = issue._id || issue.id;
@@ -72,19 +92,22 @@ const ViewComplaints = () => {
         });
         setCommentsLocal(map);
       } else {
+        // Fallback logic if backend doesn't filter/split
         const issues = res.data.issues || res.data || [];
         const my = [];
         const other = [];
         const userPostal = (user?.postalCode || "").toString().trim();
+
         issues.forEach((issue) => {
-          const ip = (issue.postalCode || issue.reportedBy?.postalCode || "")
-            .toString()
-            .trim();
+          const ip = (issue.postalCode || "").toString().trim();
+
           if (userPostal && ip && ip === userPostal) my.push(issue);
           else other.push(issue);
         });
+
         setMyAreaReports(my);
         setOtherReports(other);
+
         const map = {};
         issues.forEach((issue) => {
           const id = issue._id || issue.id;
@@ -102,6 +125,188 @@ const ViewComplaints = () => {
   useEffect(() => {
     fetchComplaints();
   }, []);
+
+  const sortAndFilterReports = (reports) => {
+    let filtered = [...reports];
+    const priorityOrder = { high: 1, medium: 2, low: 3, undefined: 4 };
+
+    // Define the desired status order for sorting
+    const statusOrder = {
+      Reported: 1,
+      "In Progress": 2,
+      Resolved: 3,
+      Closed: 4,
+      undefined: 5,
+    };
+
+    // 1. Filter
+    if (filter !== "all") {
+      filtered = filtered.filter((r) => r.priority === filter);
+    }
+
+    // 2. Sort
+    if (sortBy === "priority") {
+      filtered.sort(
+        (a, b) =>
+          priorityOrder[a.priority] - priorityOrder[b.priority] ||
+          new Date(b.createdAt) - new Date(a.createdAt)
+      );
+    } else if (sortBy === "newest") {
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortBy === "comments") {
+      filtered.sort(
+        (a, b) => (b.comments?.length || 0) - (a.comments?.length || 0)
+      );
+    } else if (sortBy === "status") {
+      const normalizeStatus = (status) =>
+        (status || "").toString().toLowerCase().replace(/_/g, " ").trim();
+
+      const statusOrder = {
+        reported: 1,
+        "in progress": 2,
+        resolved: 3,
+        closed: 4,
+      };
+
+      filtered.sort((a, b) => {
+        const statusA = normalizeStatus(a.status);
+        const statusB = normalizeStatus(b.status);
+        return (statusOrder[statusA] || 5) - (statusOrder[statusB] || 5);
+      });
+    }
+
+    return filtered;
+  };
+
+  const renderComplaintCard = (complaint) => {
+    const id = complaint._id || complaint.id;
+    const upvotes = Array.isArray(complaint.upvotes)
+      ? complaint.upvotes.length
+      : complaint.upvotes || 0;
+    const downvotes = Array.isArray(complaint.downvotes)
+      ? complaint.downvotes.length
+      : complaint.downvotes || 0;
+    const priorityColor =
+      {
+        high: "#e63946",
+        medium: "#ffb703",
+        low: "#2a9d8f",
+      }[complaint.priority] || "#6c757d";
+    // console.log("Complaint status:", complaint.status);
+    const rawStatus = (complaint.status || "Reported")
+      .toLowerCase()
+      .replace(/_/g, " ");
+    const statusColorMap = {
+      reported: "#ffc107",
+      "in progress": "#17a2b8",
+      resolved: "#28a745",
+      closed: "#6c757d",
+    };
+    const statusColor = statusColorMap[rawStatus] || "#999999";
+    const displayStatus = rawStatus.replace(/\b\w/g, (c) => c.toUpperCase());
+
+    const hasUpvoted = (complaint.upvotes || [])
+      .map(String)
+      .includes(String(userId));
+    const hasDownvoted = (complaint.downvotes || [])
+      .map(String)
+      .includes(String(userId));
+
+    return (
+      <article
+        key={id}
+        className="complaint-card"
+        aria-labelledby={`title-${id}`}
+      >
+        {/* Top info row */}
+        <div className="complaint-top-row">
+          <div className="badge-group">
+            <span
+              className="priority-badge"
+              style={{ background: priorityColor }}
+            >
+              {complaint.priority?.toUpperCase() || "N/A"}
+            </span>
+            <span
+              className="status-badge"
+              style={{ backgroundColor: statusColor }}
+            >
+              {displayStatus}
+            </span>
+          </div>
+          <span className="report-time">
+            {formatDistanceToNow(new Date(complaint.createdAt), {
+              addSuffix: true,
+            })}
+          </span>
+        </div>
+
+        {/* Image */}
+        <img
+          src={
+            (complaint.imageUrls && complaint.imageUrls[0]) ||
+            "/placeholder.jpg"
+          }
+          alt={complaint.title}
+          className="complaint-image"
+          onClick={() => openDetails(complaint)}
+          style={{ cursor: "pointer" }}
+        />
+
+        {/* Content */}
+        <div className="complaint-content">
+          <p id={`title-${id}`} className="complaint-title">
+            {complaint.title}
+          </p>
+          <p className="complaint-description">
+            {complaint.description || "No description available."}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="complaint-actions">
+          <div className="vote-buttons">
+            <button
+              className="vote-btn"
+              title="Upvote"
+              onClick={() => handleVote(id, "up")}
+              style={
+                hasUpvoted
+                  ? { background: "linear-gradient(90deg,#1f7a66,#16594f)" }
+                  : {}
+              }
+            >
+              <i className="bi bi-hand-thumbs-up" /> {upvotes}
+            </button>
+            <button
+              className="vote-btn"
+              title="Downvote"
+              onClick={() => handleVote(id, "down")}
+              style={hasDownvoted ? { background: "#d94f4f" } : {}}
+            >
+              <i className="bi bi-hand-thumbs-down" /> {downvotes}
+            </button>
+          </div>
+
+          <button
+            className="comment-btn"
+            onClick={() => openComments(complaint)}
+          >
+            <i className="bi bi-chat-left-text" /> Comments (
+            {(commentsLocal[id] || []).length})
+          </button>
+
+          <button
+            className="view-btn"
+            onClick={() => openDetails(complaint)}
+            title="viewDetails"
+          >
+            <i className="bi bi-eye"></i>
+          </button>
+        </div>
+      </article>
+    );
+  };
 
   const handleVote = async (issueId, type) => {
     try {
@@ -121,19 +326,22 @@ const ViewComplaints = () => {
         list.map((c) => {
           if ((c._id || c.id) !== issueId) return c;
           const isUp = type === "up";
+          const userIdStr = String(userId);
           const up = new Set((c.upvotes || []).map(String));
           const down = new Set((c.downvotes || []).map(String));
+
           if (isUp) {
-            if (up.has(String(userId))) up.delete(String(userId));
+            if (up.has(userIdStr)) up.delete(userIdStr);
             else {
-              up.add(String(userId));
-              down.delete(String(userId));
+              up.add(userIdStr);
+              down.delete(userIdStr);
             }
           } else {
-            if (down.has(String(userId))) down.delete(String(userId));
+            // Downvote
+            if (down.has(userIdStr)) down.delete(userIdStr);
             else {
-              down.add(String(userId));
-              up.delete(String(userId));
+              down.add(userIdStr);
+              up.delete(userIdStr);
             }
           }
           return { ...c, upvotes: Array.from(up), downvotes: Array.from(down) };
@@ -146,29 +354,23 @@ const ViewComplaints = () => {
         selectedComplaint &&
         (selectedComplaint._id || selectedComplaint.id) === issueId
       ) {
-        setSelectedComplaint((prev) => {
-          const updated = applyOptimistic([prev])[0];
-          return updated || prev;
-        });
+        setSelectedComplaint((prev) => applyOptimistic([prev])[0] || prev);
       }
       if (
         selectedComplaintForComments &&
         (selectedComplaintForComments._id ||
           selectedComplaintForComments.id) === issueId
       ) {
-        setSelectedComplaintForComments((prev) => {
-          const updated = applyOptimistic([prev])[0];
-          return updated || prev;
-        });
+        setSelectedComplaintForComments(
+          (prev) => applyOptimistic([prev])[0] || prev
+        );
       }
     } catch (err) {
       console.error("Vote error:", err);
-
       alert("Failed to submit vote. Make sure you're logged in and try again.");
     }
   };
 
-  // Comment handler: post comment, update lists/modals/comments cache
   const handleAddComment = async (issueId) => {
     const text = newComment?.trim();
     if (!text) return;
@@ -184,7 +386,7 @@ const ViewComplaints = () => {
         const updated = res.data.issue;
         updateIssueInState(updated);
       } else {
-        // fallback local add
+        // Fallback local add - only for display purposes
         setCommentsLocal((prev) => ({
           ...prev,
           [issueId]: [
@@ -194,21 +396,6 @@ const ViewComplaints = () => {
         }));
       }
       setNewComment("");
-      // if comments modal open for this issue, refresh it to show updated comments
-      if (
-        selectedComplaintForComments &&
-        (selectedComplaintForComments._id ||
-          selectedComplaintForComments.id) === issueId
-      ) {
-        // update selectedComplaintForComments comments from cache
-        setSelectedComplaintForComments((prev) => {
-          const updated = {
-            ...(prev || {}),
-            comments: commentsLocal[issueId] || [],
-          };
-          return updated;
-        });
-      }
     } catch (err) {
       console.error("Add comment error:", err);
       alert("Failed to post comment. Please try again.");
@@ -257,7 +444,7 @@ const ViewComplaints = () => {
     setModalImageIndex((i) => (i + 1) % selectedComplaint.imageUrls.length);
   };
 
-  // Map link helper
+  // Map link helper (using the corrected syntax)
   const openLocationInMaps = (complaint) => {
     const lat = complaint.latitude || complaint.lat;
     const lon = complaint.longitude || complaint.lon;
@@ -286,6 +473,24 @@ const ViewComplaints = () => {
         <p>See what issues your community is reporting and show your support</p>
       </div>
 
+      <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+        <label>Filter by Priority: </label>
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">All</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
+        <label style={{ marginLeft: 16 }}>Sort by: </label>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="priority">Priority</option>
+          <option value="newest">Newest</option>
+          <option value="comments">Most Comments</option>
+          <option value="status">Status</option>
+        </select>
+      </div>
+
       {loading && <p style={{ textAlign: "center" }}>Loading reports…</p>}
 
       {/* User area reports */}
@@ -293,98 +498,15 @@ const ViewComplaints = () => {
         <h2 style={{ color: "var(--g-pale)", marginLeft: "1.5rem" }}>
           Reports in your area
         </h2>
-        {myAreaReports.length === 0 ? (
+
+        {sortAndFilterReports(myAreaReports).length === 0 ? (
           <p style={{ color: "var(--g-accent)", marginLeft: "1.5rem" }}>
-            No reports found in your postal code.
+            No reports found in your postal code matching current filters.
           </p>
         ) : (
           <div className="complaints-grid" style={{ marginTop: 8 }}>
-            {myAreaReports.map((complaint) => {
-              const id = complaint._id || complaint.id;
-              const upvotes = Array.isArray(complaint.upvotes)
-                ? complaint.upvotes.length
-                : complaint.upvotes || 0;
-              const downvotes = Array.isArray(complaint.downvotes)
-                ? complaint.downvotes.length
-                : complaint.downvotes || 0;
-              const hasUpvoted = (complaint.upvotes || [])
-                .map(String)
-                .includes(String(userId));
-              const hasDownvoted = (complaint.downvotes || [])
-                .map(String)
-                .includes(String(userId));
-              return (
-                <article
-                  key={id}
-                  className="complaint-card"
-                  aria-labelledby={`title-${id}`}
-                >
-                  <img
-                    src={
-                      (complaint.imageUrls && complaint.imageUrls[0]) ||
-                      "/placeholder.jpg"
-                    }
-                    alt={complaint.title}
-                    className="complaint-image"
-                    onClick={() => openDetails(complaint)}
-                    style={{ cursor: "pointer" }}
-                  />
-                  <div className="complaint-content">
-                    <p id={`title-${id}`} className="complaint-title">
-                      {complaint.title}
-                    </p>
-                    <p style={{ marginTop: 6, color: "#194b3f", fontSize: 14 }}>
-                      {complaint.description?.slice(0, 120)}
-                      {complaint.description &&
-                      complaint.description.length > 120
-                        ? "…"
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="complaint-actions">
-                    <div className="vote-buttons">
-                      <button
-                        className="vote-btn"
-                        title="Upvote"
-                        onClick={() => handleVote(id, "up")}
-                        style={
-                          hasUpvoted
-                            ? {
-                                background:
-                                  "linear-gradient(90deg,#1f7a66,#16594f)",
-                              }
-                            : {}
-                        }
-                      >
-                        <i className="bi bi-hand-thumbs-up" /> {upvotes}
-                      </button>
-                      <button
-                        className="vote-btn"
-                        title="Downvote"
-                        onClick={() => handleVote(id, "down")}
-                        style={hasDownvoted ? { background: "#d94f4f" } : {}}
-                      >
-                        <i className="bi bi-hand-thumbs-down" /> {downvotes}
-                      </button>
-                    </div>
-                    <button
-                      className="comment-btn"
-                      onClick={() => openComments(complaint)}
-                    >
-                      <i className="bi bi-chat-left-text" /> Comments (
-                      {(commentsLocal[id] || []).length})
-                    </button>
-                    <button
-                      className="view-btn"
-                      onClick={() => openDetails(complaint)}
-                      title="viewDetails"
-                    >
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+            {/* *** FIX APPLIED: Use renderComplaintCard and sortAndFilterReports *** */}
+            {sortAndFilterReports(myAreaReports).map(renderComplaintCard)}
           </div>
         )}
       </section>
@@ -397,97 +519,15 @@ const ViewComplaints = () => {
           Other reports
         </h2>
         <div className="complaints-grid" style={{ marginTop: 8 }}>
-          {otherReports.length === 0 ? (
+          {sortAndFilterReports(otherReports).length === 0 ? (
             <p style={{ color: "var(--g-accent)", marginLeft: "1.5rem" }}>
-              No other reports found.
+              No other reports found matching current filters.
             </p>
           ) : (
-            otherReports.map((complaint) => {
-              const id = complaint._id || complaint.id;
-              const upvotes = Array.isArray(complaint.upvotes)
-                ? complaint.upvotes.length
-                : complaint.upvotes || 0;
-              const downvotes = Array.isArray(complaint.downvotes)
-                ? complaint.downvotes.length
-                : complaint.downvotes || 0;
-              const hasUpvoted = (complaint.upvotes || [])
-                .map(String)
-                .includes(String(userId));
-              const hasDownvoted = (complaint.downvotes || [])
-                .map(String)
-                .includes(String(userId));
-              return (
-                <article
-                  key={id}
-                  className="complaint-card"
-                  aria-labelledby={`title-${id}`}
-                >
-                  <img
-                    src={
-                      (complaint.imageUrls && complaint.imageUrls[0]) ||
-                      "/placeholder.jpg"
-                    }
-                    alt={complaint.title}
-                    className="complaint-image"
-                    onClick={() => openDetails(complaint)}
-                    style={{ cursor: "pointer" }}
-                  />
-                  <div className="complaint-content">
-                    <p id={`title-${id}`} className="complaint-title">
-                      {complaint.title}
-                    </p>
-                    <p style={{ marginTop: 6, color: "#194b3f", fontSize: 14 }}>
-                      {complaint.description?.slice(0, 120)}
-                      {complaint.description &&
-                      complaint.description.length > 120
-                        ? "…"
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="complaint-actions">
-                    <div className="vote-buttons">
-                      <button
-                        className="vote-btn"
-                        title="Upvote"
-                        onClick={() => handleVote(id, "up")}
-                        style={
-                          hasUpvoted
-                            ? {
-                                background:
-                                  "linear-gradient(90deg,#1f7a66,#16594f)",
-                              }
-                            : {}
-                        }
-                      >
-                        <i className="bi bi-hand-thumbs-up" /> {upvotes}
-                      </button>
-                      <button
-                        className="vote-btn"
-                        title="Downvote"
-                        onClick={() => handleVote(id, "down")}
-                        style={hasDownvoted ? { background: "#d94f4f" } : {}}
-                      >
-                        <i className="bi bi-hand-thumbs-down" /> {downvotes}
-                      </button>
-                    </div>
-                    <button
-                      className="comment-btn"
-                      onClick={() => openComments(complaint)}
-                    >
-                      <i className="bi bi-chat-left-text" /> Comments (
-                      {(commentsLocal[id] || []).length})
-                    </button>
-                    <button
-                      className="view-btn"
-                      onClick={() => openDetails(complaint)}
-                      title="viewDetails"
-                    >
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </article>
-              );
-            })
+            <div className="complaints-grid" style={{ marginTop: 8 }}>
+              {/* *** FIX APPLIED: Use renderComplaintCard and sortAndFilterReports *** */}
+              {sortAndFilterReports(otherReports).map(renderComplaintCard)}
+            </div>
           )}
         </div>
       </section>
@@ -502,7 +542,7 @@ const ViewComplaints = () => {
         >
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>
-              <i class="bi bi-arrow-bar-right"></i>
+              <i className="bi bi-arrow-bar-right"></i>
               {selectedComplaint.title}
             </h2>
 
@@ -549,23 +589,17 @@ const ViewComplaints = () => {
                         fontWeight: 600,
                       }}
                     >
-                      <i class="bi bi-images"></i> {modalImageIndex + 1} /{" "}
+                      <i className="bi bi-images"></i> {modalImageIndex + 1} /{" "}
                       {selectedComplaint.imageUrls.length}
                     </div>
                   )}
                 </>
               ) : (
                 <div
-                  style={{
-                    height: 240,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "#f0f6f0",
-                    borderRadius: 8,
-                  }}
+                  className="no-image"
+                  style={{ height: 240, borderRadius: 8 }}
                 >
-                  <span style={{ color: "#2c3a34" }}>No images available</span>
+                  <span>No images available</span>
                 </div>
               )}
             </div>
@@ -674,6 +708,7 @@ const ViewComplaints = () => {
                     selectedComplaintForComments._id ||
                       selectedComplaintForComments.id
                   ].map((c, idx) => {
+                    // Logic to display populated username
                     const username =
                       (c.user &&
                         typeof c.user === "object" &&
