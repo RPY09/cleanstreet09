@@ -339,6 +339,7 @@ select.form-control {
   overflow: hidden;
   min-height: 0;
   box-shadow: 0 4px 12px rgba(5, 31, 32, 0.1);
+  cursor: crosshair;
 }
 
 .location-selected-text {

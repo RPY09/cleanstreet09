@@ -87,7 +87,7 @@ const ReportIssue = () => {
         ],
         view: new View({
           center: centerProjected,
-          zoom: 12,
+          zoom: 13,
         }),
       });
 
