@@ -423,9 +423,19 @@ const ReportIssue = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">
-                  <i className="bi bi-image"></i> Upload Images (Max 3)
-                </label>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <label className="form-label">
+                    <i className="bi bi-image"></i> Upload Images (Max 3)
+                  </label>
+                  {imageFiles.length === 0 && (
+                    <p className="image-warning">
+                      <i class="bi bi-exclamation-triangle"></i> Please upload
+                      at least one image.
+                    </p>
+                  )}
+                </div>
                 <div className="custom-file-upload">
                   <span className="file-name-display">
                     {imageFiles.length === 0
@@ -447,6 +457,7 @@ const ReportIssue = () => {
                     accept="image/*"
                     multiple
                     onChange={handleImageChange}
+                    required={imageFiles.length === 0}
                   />
                 </div>
               </div>
