@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import "./ViewComplaints.css";
 
-// Placeholder for date-fns (You should install and import this)
+// Placeholder for date-fns
 const formatDistanceToNow = (date) => {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
   let interval = Math.floor(seconds / 31536000);
@@ -77,7 +77,6 @@ const ViewComplaints = () => {
       });
 
       if (res.data?.success) {
-        // Backend now returns localIssues and otherIssues (renamed in frontend for clarity)
         const myArea = res.data.localIssues || [];
         const others = res.data.otherIssues || [];
 
@@ -197,9 +196,9 @@ const ViewComplaints = () => {
       .toLowerCase()
       .replace(/_/g, " ");
     const statusColorMap = {
-      reported: "#ffc107",
-      "in progress": "#17a2b8",
-      resolved: "#28a745",
+      reported: "#ff075eff",
+      "in progress": "#1410e2ff",
+      resolved: "#2a703aff",
       closed: "#6c757d",
     };
     const statusColor = statusColorMap[rawStatus] || "#999999";
@@ -227,10 +226,7 @@ const ViewComplaints = () => {
             >
               {complaint.priority?.toUpperCase() || "N/A"}
             </span>
-            <span
-              className="status-badge"
-              style={{ backgroundColor: statusColor }}
-            >
+            <span className="status-badge" style={{ color: statusColor }}>
               {displayStatus}
             </span>
           </div>
@@ -468,34 +464,47 @@ const ViewComplaints = () => {
 
   return (
     <div className="view-complaints-page">
-      <div className="complaints-header">
-        <h1>Community Reports</h1>
-        <p>See what issues your community is reporting and show your support</p>
-      </div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div className="complaints-header">
+          <h1>Community Reports</h1>
+          <p>
+            See what issues your community is reporting and show your support
+          </p>
+        </div>
 
-      <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-        <label>Filter by Priority: </label>
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="all">All</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
+        <div
+          style={{ textAlign: "end", display: "flex", alignItems: "center" }}
+        >
+          <label>Filter by Priority: </label>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
 
-        <label style={{ marginLeft: 16 }}>Sort by: </label>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="priority">Priority</option>
-          <option value="newest">Newest</option>
-          <option value="comments">Most Comments</option>
-          <option value="status">Status</option>
-        </select>
+          <label style={{ marginLeft: 16 }}>Sort by: </label>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="priority">Priority</option>
+            <option value="newest">Newest</option>
+            <option value="comments">Most Comments</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
       </div>
 
       {loading && <p style={{ textAlign: "center" }}>Loading reports…</p>}
 
       {/* User area reports */}
       <section aria-label="Your area reports">
-        <h2 style={{ color: "var(--g-pale)", marginLeft: "1.5rem" }}>
+        <h2
+          style={{
+            color: "var(--g-pale)",
+            display: "flex",
+            justifyContent: "center",
+            textTransform: "capitalize",
+          }}
+        >
           Reports in your area
         </h2>
 
@@ -505,7 +514,6 @@ const ViewComplaints = () => {
           </p>
         ) : (
           <div className="complaints-grid" style={{ marginTop: 8 }}>
-            {/* *** FIX APPLIED: Use renderComplaintCard and sortAndFilterReports *** */}
             {sortAndFilterReports(myAreaReports).map(renderComplaintCard)}
           </div>
         )}
@@ -515,7 +523,14 @@ const ViewComplaints = () => {
 
       {/* Other reports */}
       <section aria-label="Other reports">
-        <h2 style={{ color: "var(--g-pale)", marginLeft: "1.5rem" }}>
+        <h2
+          style={{
+            color: "var(--g-pale)",
+            display: "flex",
+            justifyContent: "center",
+            textTransform: "capitalize",
+          }}
+        >
           Other reports
         </h2>
         <div className="complaints-grid" style={{ marginTop: 8 }}>
@@ -525,7 +540,6 @@ const ViewComplaints = () => {
             </p>
           ) : (
             <div className="complaints-grid" style={{ marginTop: 8 }}>
-              {/* *** FIX APPLIED: Use renderComplaintCard and sortAndFilterReports *** */}
               {sortAndFilterReports(otherReports).map(renderComplaintCard)}
             </div>
           )}
@@ -582,13 +596,7 @@ const ViewComplaints = () => {
                     </>
                   )}
                   {selectedComplaint.imageUrls.length > 1 && (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        color: "#0b2b26",
-                        fontWeight: 600,
-                      }}
-                    >
+                    <div className="imagecount">
                       <i className="bi bi-images"></i> {modalImageIndex + 1} /{" "}
                       {selectedComplaint.imageUrls.length}
                     </div>
@@ -625,24 +633,41 @@ const ViewComplaints = () => {
             <div
               className="comment-actions"
               style={{
-                justifyContent: "flex-end",
+                justifyContent: "space-between",
                 gap: "1rem",
                 marginTop: "1.5rem",
               }}
             >
-              <button
-                className="view-btn"
-                onClick={() => {
-                  closeDetailsModal();
-                  openComments(selectedComplaint);
+              <p className="reported-by">
+                <i class="bi bi-person">
+                  &nbsp;
+                  {selectedComplaint.reportedBy?.name
+                    ? selectedComplaint.reportedBy.name
+                    : "Unknown User"}
+                </i>
+              </p>
+              <div
+                style={{
+                  justifyContent: "space-between",
+                  display: "flex",
+                  gap: "1rem",
+                  // marginTop: "1.5rem",
                 }}
-                style={{ background: "#007a60" }}
               >
-                <i className="bi bi-chat-left-text" /> View/Add Comments
-              </button>
-              <button className="close-btn" onClick={closeDetailsModal}>
-                ✖
-              </button>
+                <button
+                  className="view-btn"
+                  onClick={() => {
+                    closeDetailsModal();
+                    openComments(selectedComplaint);
+                  }}
+                  style={{ background: "#007a60" }}
+                >
+                  <i className="bi bi-chat-left-text" /> View/Add Comments
+                </button>
+                <button className="close-btn" onClick={closeDetailsModal}>
+                  ✖
+                </button>
+              </div>
             </div>
           </div>
         </div>

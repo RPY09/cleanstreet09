@@ -37,13 +37,51 @@ body.modal-open {
   text-align: center;
   margin-bottom: 2.5rem;
   padding-top: 1rem;
+  text-align: start;
+  -webkit-animation: tracking-in-expand-fwd 0.8s
+    cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  animation: tracking-in-expand-fwd 0.8s cubic-bezier(0.215, 0.61, 0.355, 1)
+    both;
 }
 .complaints-header h1 {
-  font-size: 2.4rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--g-pale);
   margin-bottom: 0.5rem;
 }
+@-webkit-keyframes tracking-in-expand-fwd {
+  0% {
+    letter-spacing: -0.5em;
+    -webkit-transform: translateZ(-700px);
+    transform: translateZ(-700px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    opacity: 1;
+  }
+}
+@keyframes tracking-in-expand-fwd {
+  0% {
+    letter-spacing: -0.5em;
+    -webkit-transform: translateZ(-700px);
+    transform: translateZ(-700px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    opacity: 1;
+  }
+}
+
 .complaints-header p {
   font-size: 1rem;
   color: var(--g-accent);
@@ -86,7 +124,6 @@ body.modal-open {
   pointer-events: none;
 }
 
-/* Allow inner elements to be visible */
 .badge-group {
   display: flex;
   gap: 4px;
@@ -102,6 +139,76 @@ body.modal-open {
   padding: 4px 10px;
   border-radius: 6px 10px 10px 0;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  -webkit-animation: heartbeat 1.5s ease-in-out infinite both;
+  animation: heartbeat 1.5s ease-in-out infinite both;
+}
+@-webkit-keyframes heartbeat {
+  from {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    -webkit-transform-origin: center center;
+    transform-origin: center center;
+    -webkit-animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
+  }
+  10% {
+    -webkit-transform: scale(0.91);
+    transform: scale(0.91);
+    -webkit-animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
+  }
+  17% {
+    -webkit-transform: scale(0.98);
+    transform: scale(0.98);
+    -webkit-animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
+  }
+  33% {
+    -webkit-transform: scale(0.87);
+    transform: scale(0.87);
+    -webkit-animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
+  }
+  45% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
+  }
+}
+@keyframes heartbeat {
+  from {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    -webkit-transform-origin: center center;
+    transform-origin: center center;
+    -webkit-animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
+  }
+  10% {
+    -webkit-transform: scale(0.91);
+    transform: scale(0.91);
+    -webkit-animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
+  }
+  17% {
+    -webkit-transform: scale(0.98);
+    transform: scale(0.98);
+    -webkit-animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
+  }
+  33% {
+    -webkit-transform: scale(0.87);
+    transform: scale(0.87);
+    -webkit-animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
+  }
+  45% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
+  }
 }
 
 /* Status badge */
@@ -109,10 +216,12 @@ body.modal-open {
   display: inline-block;
   font-weight: 700;
   font-size: 0.7rem;
+  /* letter-spacing: 1px; */
+  text-transform: uppercase;
   padding: 4px 10px;
   border-radius: 8px;
-  color: #fff !important;
-  background-color: #999 !important; /* fallback color */
+  /* color: #fff !important; */
+  background-color: #ffffffc7 !important;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   pointer-events: all;
   z-index: 2;
@@ -233,12 +342,12 @@ select:hover {
 /* Divider style */
 .section-divider {
   border: none;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.071),
     rgba(255, 255, 255, 0.06),
-    rgba(255, 255, 255, 0.02)
+    rgba(255, 255, 255, 0)
   );
   margin: 28px 3rem;
 }
@@ -270,6 +379,33 @@ select:hover {
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
+  -webkit-animation: scale-in-center 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+    both;
+  animation: scale-in-center 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+@-webkit-keyframes scale-in-center {
+  0% {
+    -webkit-transform: scale(0);
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes scale-in-center {
+  0% {
+    -webkit-transform: scale(0);
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Modal grid: left image + right details/comments */
@@ -306,7 +442,14 @@ select:hover {
   border-radius: 10px;
   display: block;
 }
-
+.imagecount {
+  margin-top: 8;
+  color: #0b2b26;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
 /* gallery arrows */
 .gallery-arrow {
   position: absolute;
@@ -356,6 +499,12 @@ select:hover {
   margin: 0 0 8px;
   cursor: pointer;
   font-weight: 700;
+}
+.reported-by {
+  color: var(--g-darkest);
+  font-size: 1.2rem;
+  margin-top: 4px;
+  font-weight: 600;
 }
 
 /* Comments */
