@@ -524,6 +524,23 @@ select:hover {
   margin-bottom: 0.5rem;
   padding-right: 6px;
 }
+.comments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+  background: rgba(5, 31, 32, 0.1);
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+  background: var(--g-3);
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: var(--g-4);
+}
 .comment-bubble {
   background: rgba(142, 182, 155, 0.14);
   padding: 0.6rem 1rem;
@@ -531,6 +548,25 @@ select:hover {
   margin-bottom: 0.5rem;
   color: var(--text-on-light);
   font-weight: 600;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.comment-time {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #256c53;
+  margin-left: 6px;
+}
+
+.comment-text {
+  font-size: 0.9rem;
+  color: #123830;
 }
 .comment-input {
   width: 100%;

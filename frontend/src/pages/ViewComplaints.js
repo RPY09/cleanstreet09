@@ -744,10 +744,20 @@ const ViewComplaints = () => {
                       "User";
                     return (
                       <div key={idx} className="comment-bubble">
-                        <strong style={{ marginRight: 8, color: "#004c3f" }}>
-                          {username}:
-                        </strong>{" "}
-                        {c.text}
+                        <div className="comment-header">
+                          <strong style={{ color: "#004c3f" }}>
+                            {username}
+                          </strong>
+                          {c.createdAt && (
+                            <span className="comment-time">
+                              •{" "}
+                              {formatDistanceToNow(new Date(c.createdAt), {
+                                addSuffix: true,
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        <p className="comment-text">{c.text}</p>
                       </div>
                     );
                   })

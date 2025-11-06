@@ -237,6 +237,12 @@ textarea.form-control {
 select.form-control {
   padding: 12px 16px;
 }
+.image-warning {
+  /* color: #c0392b; */
+  font-size: 0.85rem;
+  margin-top: 6px;
+  font-weight: 600;
+}
 
 /* --- Custom File Input --- */
 .custom-file-upload {
