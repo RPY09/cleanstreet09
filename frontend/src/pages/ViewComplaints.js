@@ -35,6 +35,10 @@ const ViewComplaints = () => {
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const userId = user?._id || user?.id;
+  const [comments, setComments] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const updateIssueInState = (updatedIssue) => {
     if (!updatedIssue) return;
@@ -68,8 +72,54 @@ const ViewComplaints = () => {
     }
   };
 
+  const fetchComments = async (issueId, pageNum = 1) => {
+    if (loading) return; // Avoid multiple triggers
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${BACKEND}/api/issues/${issueId}/comments?page=${pageNum}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (pageNum === 1) setComments(res.data.comments);
+      else setComments((prev) => [...prev, ...res.data.comments]);
+
+      setTotalPages(res.data.totalPages);
+      setHasMore(pageNum < res.data.totalPages);
+    } catch (err) {
+      console.error("Error loading comments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    const handleScroll = () => {
+      const modalBox = document.querySelector(".comments-list");
+      if (!modalBox || loading || !hasMore) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = modalBox;
+      if (scrollTop + clientHeight >= scrollHeight - 10) {
+        setPage((prev) => {
+          const next = prev + 1;
+          fetchComments(selectedComplaintForComments._id, next);
+          return next;
+        });
+      }
+    };
+
+    const modalBox = document.querySelector(".comments-list");
+    if (modalBox) modalBox.addEventListener("scroll", handleScroll);
+
+    return () => {
+      if (modalBox) modalBox.removeEventListener("scroll", handleScroll);
+    };
+  }, [loading, hasMore, selectedComplaintForComments]);
+
   const fetchComplaints = async () => {
     setLoading(true);
+
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(`${BACKEND}/api/issues`, {
@@ -83,11 +133,11 @@ const ViewComplaints = () => {
         setMyAreaReports(myArea);
         setOtherReports(others);
 
-        // Map all comments for local state cache
+        // Map all comments for local state cache (using commentsCount would be better)
         const map = {};
         [...myArea, ...others].forEach((issue) => {
           const id = issue._id || issue.id;
-          map[id] = issue.comments || [];
+          map[id] = issue.comments || []; // Still using old comments array for count display on cards
         });
         setCommentsLocal(map);
       } else {
@@ -153,9 +203,8 @@ const ViewComplaints = () => {
     } else if (sortBy === "newest") {
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sortBy === "comments") {
-      filtered.sort(
-        (a, b) => (b.comments?.length || 0) - (a.comments?.length || 0)
-      );
+      // Correctly sort by the commentsCount from the Issue model
+      filtered.sort((a, b) => (b.commentsCount || 0) - (a.commentsCount || 0));
     } else if (sortBy === "status") {
       const normalizeStatus = (status) =>
         (status || "").toString().toLowerCase().replace(/_/g, " ").trim();
@@ -289,7 +338,11 @@ const ViewComplaints = () => {
             onClick={() => openComments(complaint)}
           >
             <i className="bi bi-chat-left-text" /> Comments (
-            {(commentsLocal[id] || []).length})
+            {
+              // Use commentsCount from the Issue model for display
+              complaint.commentsCount || 0
+            }
+            )
           </button>
 
           <button
@@ -368,33 +421,65 @@ const ViewComplaints = () => {
   };
 
   const handleAddComment = async (issueId) => {
-    const text = newComment?.trim();
-    if (!text) return;
+    const text = (newComment || "").trim();
+    if (!text || !issueId) {
+      if (!text) alert("Please enter a comment.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `${BACKEND}/api/issues/${issueId}/comment`,
+        `${BACKEND}/api/issues/${issueId}/comments`,
         { text },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (res.data?.success && res.data.issue) {
-        const updated = res.data.issue;
-        updateIssueInState(updated);
-      } else {
-        // Fallback local add - only for display purposes
+      if (res.data?.success) {
+        // 1) Prepend the new populated comment to the modal comments list
+        if (res.data.comment) {
+          setComments((prev) => [res.data.comment, ...(prev || [])]);
+        }
+
+        // 2) Update commentsLocal cache (so card comment counts/preview can use it)
         setCommentsLocal((prev) => ({
-          ...prev,
-          [issueId]: [
-            ...(prev[issueId] || []),
-            { text, user: user?.name || "You", createdAt: new Date() },
-          ],
+          ...(prev || {}),
+          [issueId]: [res.data.comment, ...(prev?.[issueId] || [])],
         }));
+
+        // 3) Update the single issue in the lists (myAreaReports/otherReports)
+        // use the issue returned by server if present; fallback to lightweight local increment
+        if (res.data.issue) {
+          // update the actual issue object returned from backend
+          updateIssueInState(res.data.issue);
+        } else {
+          // fallback: increment commentsCount locally to avoid refetch
+          setMyAreaReports((prev) =>
+            prev.map((i) =>
+              (i._id || i.id) === issueId
+                ? { ...i, commentsCount: (i.commentsCount || 0) + 1 }
+                : i
+            )
+          );
+          setOtherReports((prev) =>
+            prev.map((i) =>
+              (i._id || i.id) === issueId
+                ? { ...i, commentsCount: (i.commentsCount || 0) + 1 }
+                : i
+            )
+          );
+        }
+
+        // clear input and keep modal open — no full reload/fetch
+        setNewComment("");
+      } else {
+        console.warn("Unexpected add-comment response:", res.data);
+        alert("Comment posted but server response unexpected.");
       }
-      setNewComment("");
     } catch (err) {
-      console.error("Add comment error:", err);
-      alert("Failed to post comment. Please try again.");
+      console.error("Error posting comment:", err, err.response?.data);
+      const serverMessage = err.response?.data?.message || err.message;
+      alert("Failed to post comment: " + serverMessage);
     }
   };
 
@@ -413,17 +498,17 @@ const ViewComplaints = () => {
 
   const openComments = (complaint) => {
     setSelectedComplaintForComments(complaint);
+    // Use the issue's ID for fetching comments
+    fetchComments(complaint._id || complaint.id, 1);
+    setPage(1); // Reset page when opening
     document.body.classList.add("modal-open");
-    const id = complaint._id || complaint.id;
-    setCommentsLocal((prev) => ({
-      ...prev,
-      [id]: prev[id] || complaint.comments || [],
-    }));
   };
-
   const closeCommentsModal = () => {
     setSelectedComplaintForComments(null);
     setNewComment("");
+    setComments([]); // Clear comments when closing
+    setPage(1); // Reset page
+    setTotalPages(1); // Reset totalPages
     document.body.classList.remove("modal-open");
   };
 
@@ -640,7 +725,7 @@ const ViewComplaints = () => {
             >
               <p className="reported-by">
                 <i class="bi bi-person">
-                  &nbsp;
+                   
                   {selectedComplaint.reportedBy?.name
                     ? selectedComplaint.reportedBy.name
                     : "Unknown User"}
@@ -697,6 +782,7 @@ const ViewComplaints = () => {
               <div className="comment-actions">
                 <button
                   className="post-btn"
+                  // FIX: Pass the issue ID to the handler
                   onClick={() =>
                     handleAddComment(
                       selectedComplaintForComments._id ||
@@ -721,26 +807,12 @@ const ViewComplaints = () => {
                 All Comments
               </h3>
               <div className="comments-list" style={{ maxHeight: "300px" }}>
-                {commentsLocal[
-                  selectedComplaintForComments._id ||
-                    selectedComplaintForComments.id
-                ] &&
-                commentsLocal[
-                  selectedComplaintForComments._id ||
-                    selectedComplaintForComments.id
-                ].length > 0 ? (
-                  commentsLocal[
-                    selectedComplaintForComments._id ||
-                      selectedComplaintForComments.id
-                  ].map((c, idx) => {
-                    // Logic to display populated username
+                {comments.length > 0 ? (
+                  comments.map((c, idx) => {
                     const username =
-                      (c.user &&
-                        typeof c.user === "object" &&
-                        (c.user.name || c.user.username)) ||
-                      (typeof c.user === "string" && c.user === String(userId)
-                        ? user?.name
-                        : c.user) ||
+                      (c.userId &&
+                        typeof c.userId === "object" &&
+                        (c.userId.name || c.userId.username)) ||
                       "User";
                     return (
                       <div key={idx} className="comment-bubble">
@@ -761,6 +833,8 @@ const ViewComplaints = () => {
                       </div>
                     );
                   })
+                ) : loading ? (
+                  <p>Loading comments...</p>
                 ) : (
                   <p>No comments yet. Be the first to start a discussion!</p>
                 )}
