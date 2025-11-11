@@ -5,8 +5,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const cloudinary = require("cloudinary").v2;
 const authRoutes = require("./routes/authRoutes");
+const commentRoutes = require("./routes/commentRoutes");
 const issueRoutes = require("./routes/issueRoutes");
-// <-- added utilsRoutes require
 const utilsRoutes = require("./routes/utilsRoutes");
 
 dotenv.config(); // Load environment variables from .env
@@ -23,9 +23,10 @@ const app = express();
 app.use(cors()); // Allows frontend (on different port) to access backend
 app.use(express.json()); // Allows parsing of JSON request body
 app.use("/api/auth", authRoutes);
-app.use("/api/issues", issueRoutes);
 // app.use("/api/utils", utilsRoutes);
-app.use("/api/utils", require("./routes/utilsRoutes"));
+app.use("/api", commentRoutes);
+app.use("/api/utils", utilsRoutes);
+app.use("/api/issues", issueRoutes);
 
 // Database Connection
 const connectDB = async () => {

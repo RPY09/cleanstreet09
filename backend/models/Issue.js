@@ -9,6 +9,8 @@ const issueSchema = new mongoose.Schema({
     default: "medium",
   },
   address: { type: String, required: true },
+  latitude: { type: Number, required: false },
+  longitude: { type: Number, required: false },
   postalCode: {
     type: String,
     trim: true,
@@ -30,6 +32,14 @@ const issueSchema = new mongoose.Schema({
     default: "reported",
   },
   createdAt: { type: Date, default: Date.now },
+  commentsCount: { type: Number, default: 0 },
+  latestComment: {
+    text: String,
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    createdAt: Date,
+  },
+  upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  downvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 });
 
 module.exports = mongoose.model("Issue", issueSchema);
