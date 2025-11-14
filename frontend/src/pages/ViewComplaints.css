@@ -105,6 +105,41 @@ body.modal-open {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transition: transform 0.2s ease;
+  -webkit-animation: swing-in-top-fwd 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)
+    both;
+  animation: swing-in-top-fwd 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@-webkit-keyframes swing-in-top-fwd {
+  0% {
+    -webkit-transform: rotateX(-100deg);
+    transform: rotateX(-100deg);
+    -webkit-transform-origin: top;
+    transform-origin: top;
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: rotateX(0deg);
+    transform: rotateX(0deg);
+    -webkit-transform-origin: top;
+    transform-origin: top;
+    opacity: 1;
+  }
+}
+@keyframes swing-in-top-fwd {
+  0% {
+    -webkit-transform: rotateX(-100deg);
+    transform: rotateX(-100deg);
+    -webkit-transform-origin: top;
+    transform-origin: top;
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: rotateX(0deg);
+    transform: rotateX(0deg);
+    -webkit-transform-origin: top;
+    transform-origin: top;
+    opacity: 1;
+  }
 }
 
 .complaint-card:hover {
@@ -360,7 +395,7 @@ select:hover {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1200;
+  z-index: 10;
   padding: 20px;
 }
 
@@ -556,7 +591,16 @@ select:hover {
   align-items: center;
   margin-bottom: 4px;
 }
-
+.comment-bubble .bi-trash {
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+.comment-bubble .bi-trash:hover {
+  color: #ff4d4d;
+}
+.swalalerts {
+  z-index: 12 !important;
+}
 .comment-time {
   font-size: 0.75rem;
   font-weight: 500;

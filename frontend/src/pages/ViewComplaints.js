@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
+import Swal from "sweetalert2";
 import "./ViewComplaints.css";
 
 // Placeholder for date-fns
@@ -361,7 +362,7 @@ const ViewComplaints = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `${BACKEND}/api/issues/${issueId}/${type}`,
+        `${BACKEND}/api/issues/${issueId}/vote/${type}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -480,6 +481,89 @@ const ViewComplaints = () => {
       console.error("Error posting comment:", err, err.response?.data);
       const serverMessage = err.response?.data?.message || err.message;
       alert("Failed to post comment: " + serverMessage);
+    }
+  };
+  const handleDeleteComment = async (issueId, commentId) => {
+    // Confirm before deleting
+    const confirmResult = await Swal.fire({
+      title: "Are you sure?",
+      text: "This comment will be permanently deleted.",
+      icon: "warning",
+      showCancelButton: true,
+      background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+      color: "#1B1B1B",
+      confirmButtonColor: "#005347",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      className: "swalalerts",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.delete(
+        `${BACKEND}/api/issues/${issueId}/comments/${commentId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data?.success) {
+        setComments((prev) => prev.filter((c) => c._id !== commentId));
+
+        setCommentsLocal((prev) => ({
+          ...prev,
+          [issueId]: (prev[issueId] || []).filter((c) => c._id !== commentId),
+        }));
+
+        setMyAreaReports((prev) =>
+          prev.map((i) =>
+            (i._id || i.id) === issueId
+              ? { ...i, commentsCount: Math.max((i.commentsCount || 1) - 1, 0) }
+              : i
+          )
+        );
+
+        setOtherReports((prev) =>
+          prev.map((i) =>
+            (i._id || i.id) === issueId
+              ? { ...i, commentsCount: Math.max((i.commentsCount || 1) - 1, 0) }
+              : i
+          )
+        );
+
+        // 🎉 Sweet success message
+        Swal.fire({
+          title: "Deleted!",
+          text: "Your comment has been deleted successfully.",
+          icon: "success",
+          background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+          color: "#1B1B1B",
+          confirmButtonColor: "#005347",
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      } else {
+        Swal.fire({
+          title: "Error",
+          text: res.data?.message || "Failed to delete comment.",
+          icon: "error",
+          confirmButtonColor: "#007a60",
+        });
+      }
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+      Swal.fire({
+        title: "Error!",
+        text:
+          err.response?.data?.message ||
+          "Something went wrong. Please try again.",
+        icon: "error",
+        cbackground: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
+        color: "#1B1B1B",
+        confirmButtonColor: "#005347",
+        timer: 3000,
+        timerProgressBar: true,
+      });
     }
   };
 
@@ -814,6 +898,13 @@ const ViewComplaints = () => {
                         typeof c.userId === "object" &&
                         (c.userId.name || c.userId.username)) ||
                       "User";
+
+                    const isAuthor =
+                      c.userId &&
+                      (typeof c.userId === "object"
+                        ? c.userId._id
+                        : c.userId.toString()) === (user?._id || user?.id);
+
                     return (
                       <div key={idx} className="comment-bubble">
                         <div className="comment-header">
@@ -822,11 +913,31 @@ const ViewComplaints = () => {
                           </strong>
                           {c.createdAt && (
                             <span className="comment-time">
-                              •{" "}
-                              {formatDistanceToNow(new Date(c.createdAt), {
-                                addSuffix: true,
-                              })}
+                              • {formatDistanceToNow(new Date(c.createdAt))}
                             </span>
+                          )}
+
+                          {/* 🗑️ Delete button visible only to comment author */}
+                          {isAuthor && (
+                            <button
+                              onClick={() =>
+                                handleDeleteComment(
+                                  selectedComplaintForComments._id ||
+                                    selectedComplaintForComments.id,
+                                  c._id
+                                )
+                              }
+                              style={{
+                                marginLeft: "auto",
+                                background: "transparent",
+                                border: "none",
+                                color: "#b22222",
+                                cursor: "pointer",
+                              }}
+                              title="Delete comment"
+                            >
+                              <i className="bi bi-trash" />
+                            </button>
                           )}
                         </div>
                         <p className="comment-text">{c.text}</p>

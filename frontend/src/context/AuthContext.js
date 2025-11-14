@@ -53,10 +53,12 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
       });
-
       const { user: respUser, token: respToken } = response.data;
 
-      // persist and set in-memory state
+      if (respUser && respUser.location && !respUser.postalCode) {
+        const extracted = respUser.location.match(/\b\d{6}\b/);
+        if (extracted) respUser.postalCode = extracted[0];
+      }
       loginWithToken(respToken, respUser);
 
       return { success: true, user: respUser };
@@ -74,7 +76,6 @@ export const AuthProvider = ({ children }) => {
 
       const { user: respUser, token: respToken } = response.data;
 
-      // persist and set in-memory state
       loginWithToken(respToken, respUser);
 
       return { success: true, user: respUser };

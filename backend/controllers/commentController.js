@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Issue = require("../models/Issue");
 const Comment = require("../models/Comment");
 
@@ -58,78 +59,59 @@ exports.deleteComment = async (req, res) => {
   const { issueId, commentId } = req.params;
   const userId = req.user && req.user._id;
 
-  if (
-    !mongoose.Types.ObjectId.isValid(issueId) ||
-    !mongoose.Types.ObjectId.isValid(commentId)
-  ) {
-    return res.status(400).json({ success: false, message: "Invalid IDs" });
-  }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    // Load the comment
-    const comment = await Comment.findById(commentId).session(session);
+    if (
+      !mongoose.Types.ObjectId.isValid(issueId) ||
+      !mongoose.Types.ObjectId.isValid(commentId)
+    ) {
+      return res.status(400).json({ success: false, message: "Invalid IDs" });
+    }
+
+    const comment = await Comment.findById(commentId);
     if (!comment) {
-      await session.abortTransaction();
-      session.endSession();
       return res
         .status(404)
         .json({ success: false, message: "Comment not found" });
     }
 
-    // Permission check: allow owner or admin (adjust if your app uses a different role field)
     if (
       String(comment.userId) !== String(userId) &&
       req.user?.role !== "admin"
     ) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(403).json({
         success: false,
         message: "Not authorized to delete this comment",
       });
     }
 
-    // Delete the comment
-    await Comment.deleteOne({ _id: commentId }).session(session);
+    await Comment.deleteOne({ _id: commentId });
 
-    // Recompute commentsCount and latestComment for the issue
-    const newCount = await Comment.countDocuments({ issueId }).session(session);
-
-    // find latest comment if any
+    const newCount = await Comment.countDocuments({ issueId });
     const latest = await Comment.findOne({ issueId })
       .sort({ createdAt: -1 })
-      .session(session)
       .lean();
 
     const latestCommentObj = latest
-      ? { text: latest.text, user: latest.userId, createdAt: latest.createdAt }
+      ? {
+          text: latest.text,
+          user: latest.userId,
+          createdAt: latest.createdAt,
+        }
       : null;
 
-    // Update the issue
-    await Issue.findByIdAndUpdate(
-      issueId,
-      {
-        $set: { commentsCount: newCount, latestComment: latestCommentObj },
-      },
-      { session }
-    );
+    await Issue.findByIdAndUpdate(issueId, {
+      $set: { commentsCount: newCount, latestComment: latestCommentObj },
+    });
 
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: "Comment deleted",
+      message: "Comment deleted successfully",
       commentsCount: newCount,
       latestComment: latestCommentObj,
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error("Error deleting comment:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
