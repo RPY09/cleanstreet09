@@ -1,109 +1,188 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import './AdminReports.css';
+import React, { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../context/AuthContext";
+import "./AdminReports.css";
+import axios from "axios";
+
+/**
+ * Local axios instance (kept in this file per your request)
+ * Automatically attaches JWT from localStorage if present.
+ */
+const api = axios.create({
+  baseURL: "http://localhost:5000/api",
+  timeout: 15000,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 const AdminReports = () => {
   const { user } = useAuth();
+
   const [reports, setReports] = useState({
     totalUsers: 0,
-    activeUsers: 0,
+    activeUsers: 0, // backend may provide this later; default 0
     totalComplaints: 0,
     resolvedComplaints: 0,
     pendingComplaints: 0,
-    newUsersThisMonth: 0,
+    newUsersThisRange: 0, // <-- matches backend: newUsersThisRange
     complaintResolutionRate: 0,
     userGrowth: [],
     complaintTrends: [],
-    systemMetrics: {}
+    systemMetrics: {},
+    lastUpdated: null,
   });
+
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('month');
-  const [selectedReport, setSelectedReport] = useState('overview');
+  const [timeRange, setTimeRange] = useState("month");
+  const [selectedReport, setSelectedReport] = useState("overview");
+  const [error, setError] = useState(null);
 
-  // Demo data - no API calls
-  const demoData = {
-    totalUsers: 1254,
-    activeUsers: 892,
-    totalComplaints: 567,
-    resolvedComplaints: 423,
-    pendingComplaints: 144,
-    newUsersThisMonth: 89,
-    complaintResolutionRate: 74.6,
-    userGrowth: [
-      { month: 'Jan', users: 800 },
-      { month: 'Feb', users: 920 },
-      { month: 'Mar', users: 1050 },
-      { month: 'Apr', users: 1120 },
-      { month: 'May', users: 1200 },
-      { month: 'Jun', users: 1254 }
-    ],
-    complaintTrends: [
-      { category: 'Pot Holes', count: 245 },
-      { category: 'Garbage', count: 130 },
-      { category: 'Sewage', count: 125 },
-      { category: 'Water', count: 67 }
-    ],
-    systemMetrics: {
-      avgResponseTime: '2.4h',
-      userSatisfaction: '4.2/5',
-      systemUptime: '99.8%',
-      activeSessions: 247,
-      databaseSize: '2.4 GB'
-    }
-  };
-
-  // Use useCallback to prevent unnecessary re-renders
-  const fetchReportsData = useCallback(() => {
+  // Fetch reports from backend and map safely into frontend state shape
+  const fetchReportsData = useCallback(async () => {
     setLoading(true);
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-      setReports(demoData);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    setError(null);
+    try {
+      const res = await api.get(`/admin/reports?range=${timeRange}`);
+      const data = res.data && res.data.success ? res.data : res.data || {};
 
+      // Map backend fields to frontend-safe values
+      // Map backend fields to frontend-safe values
+      const mapped = {
+        totalUsers: Number(data.totalUsers ?? 0),
+        activeUsers: Number(data.activeUsers ?? data.totalUsers ?? 0),
+        totalComplaints: Number(data.totalComplaints ?? 0),
+        resolvedComplaints: Number(data.resolvedComplaints ?? 0),
+        pendingComplaints: Number(data.pendingComplaints ?? 0),
+        newUsersThisRange: Number(
+          data.newUsersThisRange ?? data.newUsersThisMonth ?? 0
+        ),
+        complaintResolutionRate: Number(data.complaintResolutionRate ?? 0),
+        userGrowth: Array.isArray(data.userGrowth) ? data.userGrowth : [],
+        complaintTrends: Array.isArray(data.complaintTrends)
+          ? data.complaintTrends
+          : [],
+        systemMetrics: data.systemMetrics ?? {},
+        // <<< NEW SAFE FIELDS (defaults to 0 counts)
+        issueStatusCounts:
+          typeof data.issueStatusCounts === "object" &&
+          data.issueStatusCounts !== null
+            ? data.issueStatusCounts
+            : { reported: 0, "in progress": 0, resolved: 0, rejected: 0 },
+        priorityCounts:
+          typeof data.priorityCounts === "object" &&
+          data.priorityCounts !== null
+            ? data.priorityCounts
+            : { high: 0, medium: 0, low: 0 },
+        lastUpdated: new Date().toISOString(),
+      };
+
+      setReports(mapped);
+    } catch (err) {
+      console.error("Failed to load reports:", err);
+      setError("Failed to load reports. Check console for details.");
+    } finally {
+      setLoading(false);
+    }
+  }, [timeRange]);
+
+  // Export report (JSON for now)
   const exportReport = (format) => {
+    if (format === "csv") {
+      // simple CSV conversion for the top-level numeric metrics (optional)
+      const rows = [
+        ["metric", "value"],
+        ["totalUsers", reports.totalUsers],
+        ["activeUsers", reports.activeUsers],
+        ["totalComplaints", reports.totalComplaints],
+        ["resolvedComplaints", reports.resolvedComplaints],
+        ["pendingComplaints", reports.pendingComplaints],
+        ["newUsersThisRange", reports.newUsersThisRange],
+        ["complaintResolutionRate", reports.complaintResolutionRate],
+      ];
+      const csvContent = rows.map((r) => r.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `admin_report_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      return;
+    }
+
+    // default: json
     const dataStr = JSON.stringify(reports, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
+    const blob = new Blob([dataStr], { type: "application/json" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `demo_report_${new Date().toISOString().split('T')[0]}.${format}`;
+    a.download = `admin_report_${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     window.URL.revokeObjectURL(url);
-    alert(`Demo report exported as ${format.toUpperCase()}`);
   };
 
-  // Fixed useEffect - no setState calls directly in effect
+  // Create donut segments using conic-gradient
+  // Create donut segments using conic-gradient (safe)
+  const buildDonut = (data = {}, colors = []) => {
+    // Ensure `data` is an object
+    if (!data || typeof data !== "object") {
+      // return a neutral gray donut
+      return "conic-gradient(#eee 0deg 360deg)";
+    }
+
+    const entries = Object.entries(data);
+    const total = entries.reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
+
+    if (total === 0) {
+      // no data — neutral donut
+      return "conic-gradient(#eee 0deg 360deg)";
+    }
+
+    let start = 0;
+    const gradientParts = entries.map(([key, value], i) => {
+      const val = Number(value) || 0;
+      const percent = (val / total) * 100;
+      const color = colors[i % colors.length] || "#ccc";
+      const seg = `${color} ${start}% ${start + percent}%`;
+      start += percent;
+      return seg;
+    });
+
+    return `conic-gradient(${gradientParts.join(", ")})`;
+  };
+
+  // Load data when user/timeRange changes
   useEffect(() => {
     let mounted = true;
 
-    const loadData = async () => {
-      if (user && user.role === 'admin') {
-        if (mounted) {
-          fetchReportsData();
-        }
+    const load = async () => {
+      if (user && user.role === "admin") {
+        if (mounted) await fetchReportsData();
       } else {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
-    loadData();
+    load();
 
     return () => {
       mounted = false;
     };
   }, [user, timeRange, fetchReportsData]);
 
-  // Calculate additional metrics
-  const userEngagementRate = reports.totalUsers > 0 
-    ? Math.round((reports.activeUsers / reports.totalUsers) * 100) 
-    : 0;
+  // Derived metrics
+  const userEngagementRate =
+    reports.totalUsers > 0
+      ? Math.round((reports.activeUsers / reports.totalUsers) * 100)
+      : 0;
 
-  // Redirect non-admin users
-  if (!user || user.role !== 'admin') {
+  // Access control: only admins allowed
+  if (!user || user.role !== "admin") {
     return (
       <div className="admin-reports">
         <div className="container">
@@ -136,66 +215,27 @@ const AdminReports = () => {
         <div className="reports-header">
           <div className="header-content">
             <h1>Analytics & Reports</h1>
-            <p>View system analytics and generate detailed reports</p>
-            <div className="demo-banner">
-              <span>📊 Using Demo Data - No backend connection</span>
-            </div>
+            <p>View system analytics and generate detailed reports (live)</p>
           </div>
           <div className="header-actions">
-            <div className="time-range-selector">
-              <label htmlFor="timeRange">Time Range:</label>
-              <select 
-                id="timeRange"
-                value={timeRange} 
-                onChange={(e) => setTimeRange(e.target.value)}
-              >
-                <option value="week">Last 7 Days</option>
-                <option value="month">Last 30 Days</option>
-                <option value="quarter">Last Quarter</option>
-                <option value="year">Last Year</option>
-              </select>
-            </div>
-            <button 
+            <button
               className="btn btn-primary"
-              onClick={() => exportReport('json')}
+              onClick={() => exportReport("json")}
             >
-              <span className="btn-icon">📥</span>
+              <span className="btn-icon">
+                <i class="bi bi-download"></i>
+              </span>
               Export Report
             </button>
           </div>
         </div>
 
-        {/* Report Type Navigation */}
-        <div className="reports-navigation">
-          <button 
-            className={`nav-btn ${selectedReport === 'overview' ? 'active' : ''}`}
-            onClick={() => setSelectedReport('overview')}
-          >
-            <span className="nav-icon">📊</span>
-            Overview
-          </button>
-          <button 
-            className={`nav-btn ${selectedReport === 'users' ? 'active' : ''}`}
-            onClick={() => setSelectedReport('users')}
-          >
-            <span className="nav-icon">👥</span>
-            User Analytics
-          </button>
-          <button 
-            className={`nav-btn ${selectedReport === 'complaints' ? 'active' : ''}`}
-            onClick={() => setSelectedReport('complaints')}
-          >
-            <span className="nav-icon">⚠️</span>
-            Complaint Reports
-          </button>
-          <button 
-            className={`nav-btn ${selectedReport === 'system' ? 'active' : ''}`}
-            onClick={() => setSelectedReport('system')}
-          >
-            <span className="nav-icon">⚙️</span>
-            System Performance
-          </button>
-        </div>
+        {error ? (
+          <div className="section">
+            <h3>Error</h3>
+            <p style={{ color: "red" }}>{error}</p>
+          </div>
+        ) : null}
 
         {/* Key Metrics Section */}
         <div className="section">
@@ -203,24 +243,32 @@ const AdminReports = () => {
           <div className="metrics-grid">
             <div className="metric-card">
               <div className="metric-icon">
-                <span>👥</span>
+                <span>
+                  <i class="bi bi-people"></i>
+                </span>
               </div>
               <div className="metric-content">
                 <h3>Total Users</h3>
-                <p className="metric-value">{reports.totalUsers.toLocaleString()}</p>
+                <p className="metric-value">
+                  {reports.totalUsers.toLocaleString()}
+                </p>
                 <p className="metric-change positive">
-                  +{reports.newUsersThisMonth} this month
+                  <strong>New This Range:</strong> {reports.newUsersThisRange}
                 </p>
               </div>
             </div>
 
             <div className="metric-card">
               <div className="metric-icon">
-                <span>✅</span>
+                <span>
+                  <i class="bi bi-person-check"></i>
+                </span>
               </div>
               <div className="metric-content">
                 <h3>Active Users</h3>
-                <p className="metric-value">{reports.activeUsers.toLocaleString()}</p>
+                <p className="metric-value">
+                  {reports.activeUsers.toLocaleString()}
+                </p>
                 <p className="metric-subtitle">
                   {userEngagementRate}% engagement rate
                 </p>
@@ -229,11 +277,15 @@ const AdminReports = () => {
 
             <div className="metric-card">
               <div className="metric-icon">
-                <span>⚠️</span>
+                <span>
+                  <i class="bi bi-exclamation-triangle"></i>
+                </span>
               </div>
               <div className="metric-content">
                 <h3>Total Complaints</h3>
-                <p className="metric-value">{reports.totalComplaints.toLocaleString()}</p>
+                <p className="metric-value">
+                  {reports.totalComplaints.toLocaleString()}
+                </p>
                 <p className="metric-subtitle">
                   {reports.pendingComplaints} pending resolution
                 </p>
@@ -242,13 +294,18 @@ const AdminReports = () => {
 
             <div className="metric-card">
               <div className="metric-icon">
-                <span>🎯</span>
+                <span>
+                  <i class="bi bi-bullseye"></i>
+                </span>
               </div>
               <div className="metric-content">
                 <h3>Resolution Rate</h3>
-                <p className="metric-value">{reports.complaintResolutionRate}%</p>
+                <p className="metric-value">
+                  {reports.complaintResolutionRate}%
+                </p>
                 <p className="metric-change positive">
-                  {reports.resolvedComplaints} resolved • 2.4h avg
+                  {reports.resolvedComplaints} resolved •{" "}
+                  {reports.systemMetrics.avgResponseTime ?? "—"} avg
                 </p>
               </div>
             </div>
@@ -258,8 +315,23 @@ const AdminReports = () => {
         {/* Reporting Dashboard Section */}
         <div className="section">
           <div className="section-header">
-            <h2>Reporting Dashboard</h2>
-            <p>Demo analytics and performance metrics</p>
+            <div>
+              <h2>Reporting Dashboard</h2>
+              <p>Live analytics and performance metrics</p>
+            </div>
+            <div className="time-range-selector">
+              <label htmlFor="timeRange">Time Range:</label>
+              <select
+                id="timeRange"
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+              >
+                <option value="week">Last 7 Days</option>
+                <option value="month">Last 30 Days</option>
+                <option value="quarter">Last Quarter</option>
+                <option value="year">Last Year</option>
+              </select>
+            </div>
           </div>
 
           <div className="dashboard-grid">
@@ -272,7 +344,11 @@ const AdminReports = () => {
                     <span className="data-info">
                       {reports.userGrowth.length} months data
                     </span>
-                    <button className="btn btn-outline" onClick={fetchReportsData}>
+                    <button
+                      className="btn btn-outline"
+                      onClick={fetchReportsData}
+                    >
+                      <i class="bi bi-arrow-clockwise"></i>
                       Refresh Data
                     </button>
                   </div>
@@ -280,18 +356,33 @@ const AdminReports = () => {
                 <div className="chart-placeholder">
                   <div className="data-chart">
                     <div className="chart-bars">
-                      {reports.userGrowth.map((item, index) => (
-                        <div key={index} className="chart-bar-container">
-                          <div 
-                            className="chart-bar" 
-                            style={{
-                              height: `${(item.users / Math.max(...reports.userGrowth.map(g => g.users))) * 80}%`
-                            }}
-                            title={`${item.month}: ${item.users} users`}
-                          ></div>
-                          <span className="chart-label">{item.month}</span>
+                      {reports.userGrowth.length === 0 ? (
+                        <div style={{ color: "#163832" }}>
+                          No user growth data
                         </div>
-                      ))}
+                      ) : (
+                        reports.userGrowth.map((item, index) => {
+                          const max = Math.max(
+                            ...reports.userGrowth.map((g) => g.users),
+                            1
+                          );
+                          const heightPct = ((item.users || 0) / max) * 80;
+                          return (
+                            <div key={index} className="chart-bar-container">
+                              <div
+                                className="chart-bar"
+                                style={{ height: `${heightPct}px` }}
+                                title={`${item.month}: ${item.users} users`}
+                              >
+                                <div className="chart-bar-value">
+                                  {item.users}
+                                </div>
+                              </div>
+                              <span className="chart-label">{item.month}</span>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                     <p className="chart-description">
                       User growth over {reports.userGrowth.length} months
@@ -300,21 +391,90 @@ const AdminReports = () => {
                 </div>
               </div>
 
-              <div className="chart-card">
-                <h4>Complaint Distribution</h4>
-                <div className="chart-placeholder">
-                  <div className="data-chart">
-                    <div className="complaint-categories">
-                      {reports.complaintTrends.map((item, index) => (
-                        <div key={index} className="category-item">
-                          <span className="category-name">{item.category}</span>
-                          <span className="category-count">{item.count}</span>
+              <div className="pie-charts-wrapper">
+                {/* Issue Status Donut */}
+                <div className="pie-card">
+                  <h4>Issue Status Distribution</h4>
+
+                  <div
+                    className="donut"
+                    style={{
+                      background: buildDonut(reports.issueStatusCounts, [
+                        "#051f20", // reported
+                        "#235347", // in progress
+                        "#daf1de", // resolved
+                        "#9E9E9E", // rejected
+                      ]),
+                    }}
+                  ></div>
+
+                  <div className="donut-legend">
+                    {Object.entries(reports.issueStatusCounts).map(
+                      ([label, value], i) => {
+                        const statusTotal = Object.values(
+                          reports.issueStatusCounts
+                        ).reduce((a, b) => a + b, 0);
+
+                        const percent =
+                          statusTotal > 0
+                            ? ((value / statusTotal) * 100).toFixed(1)
+                            : 0;
+
+                        const colors = [
+                          "#051f20",
+                          "#235347",
+                          "#daf1de",
+                          "#9E9E9E",
+                        ];
+
+                        return (
+                          <div key={i} className="legend-row">
+                            <span
+                              className="legend-color"
+                              style={{ background: colors[i] }}
+                            ></span>
+                            <span className="legend-text">
+                              {label} — <strong>{value}</strong> ({percent}%)
+                            </span>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+
+                {/* Priority Donut */}
+                <div className="pie-card">
+                  <h4>Priority Distribution</h4>
+
+                  <div
+                    className="donut"
+                    style={{
+                      background: buildDonut(reports.priorityCounts, [
+                        "#051f20", // high
+                        "#235347", // medium
+                        "#daf1de", // low
+                      ]),
+                    }}
+                  ></div>
+
+                  <div className="donut-legend">
+                    {Object.entries(reports.priorityCounts).map(
+                      ([key, value], idx) => (
+                        <div className="legend-row" key={key}>
+                          <span
+                            className="legend-color"
+                            style={{
+                              background: ["#051f20", "#235347", "#daf1de"][
+                                idx
+                              ],
+                            }}
+                          ></span>
+                          <span className="legend-label">{key}</span>
+                          <span className="legend-value">{value}</span>
                         </div>
-                      ))}
-                    </div>
-                    <p className="chart-description">
-                      {reports.complaintTrends.length} complaint categories
-                    </p>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -328,19 +488,27 @@ const AdminReports = () => {
                 <div className="stats-list">
                   <div className="stat-item">
                     <span className="stat-label">Avg. Response Time</span>
-                    <span className="stat-value">{reports.systemMetrics.avgResponseTime}</span>
+                    <span className="stat-value">
+                      {reports.systemMetrics.avgResponseTime ?? "—"}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">User Satisfaction</span>
-                    <span className="stat-value">{reports.systemMetrics.userSatisfaction}</span>
+                    <span className="stat-value">
+                      {reports.systemMetrics.userSatisfaction ?? "—"}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">System Uptime</span>
-                    <span className="stat-value">{reports.systemMetrics.systemUptime}</span>
+                    <span className="stat-value">
+                      {reports.systemMetrics.systemUptime ?? "—"}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Active Sessions</span>
-                    <span className="stat-value">{reports.systemMetrics.activeSessions}</span>
+                    <span className="stat-value">
+                      {reports.systemMetrics.activeSessions ?? "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -349,16 +517,28 @@ const AdminReports = () => {
               <div className="sidebar-card">
                 <h5>Generate Reports</h5>
                 <div className="action-buttons">
-                  <button className="action-btn" onClick={() => exportReport('json')}>
-                    <span className="action-icon">📊</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => exportReport("json")}
+                  >
+                    <span className="action-icon">
+                      <i class="bi bi-clipboard2-data"></i>
+                    </span>
                     JSON Report
                   </button>
-                  <button className="action-btn" onClick={() => exportReport('csv')}>
-                    <span className="action-icon">📄</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => exportReport("csv")}
+                  >
+                    <span className="action-icon">
+                      <i class="bi bi-pass"></i>
+                    </span>
                     CSV Export
                   </button>
                   <button className="action-btn" onClick={fetchReportsData}>
-                    <span className="action-icon">🔄</span>
+                    <span className="action-icon">
+                      <i class="bi bi-arrow-clockwise"></i>
+                    </span>
                     Refresh Data
                   </button>
                 </div>
@@ -370,17 +550,43 @@ const AdminReports = () => {
                 <div className="status-list">
                   <div className="status-item">
                     <span className="status-label">Data Source</span>
-                    <span className="status-value">Demo Data</span>
+                    <span className="status-value">Live Backend</span>
                   </div>
                   <div className="status-item">
                     <span className="status-label">Last Updated</span>
-                    <span className="status-value">{new Date().toLocaleTimeString()}</span>
+                    <span className="status-value">
+                      {reports.lastUpdated
+                        ? new Date(reports.lastUpdated).toLocaleString()
+                        : new Date().toLocaleString()}
+                    </span>
                   </div>
                   <div className="status-item">
                     <span className="status-label">Time Range</span>
                     <span className="status-value">{timeRange}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+          <div className="chart-card full-width">
+            <h4>Complaint Distribution</h4>
+            <div className="chart-placeholder">
+              <div className="data-chart">
+                <div className="complaint-categories">
+                  {reports.complaintTrends.length === 0 ? (
+                    <div style={{ color: "#163832" }}>No complaint trends</div>
+                  ) : (
+                    reports.complaintTrends.map((item, index) => (
+                      <div key={index} className="category-item">
+                        <span className="category-name">{item.category}</span>
+                        <span className="category-count">{item.count}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="chart-description">
+                  {reports.complaintTrends.length} complaint categories
+                </p>
               </div>
             </div>
           </div>
@@ -393,28 +599,64 @@ const AdminReports = () => {
             <div className="summary-card">
               <h4>User Statistics</h4>
               <div className="summary-content">
-                <p><strong>Total Registered:</strong> {reports.totalUsers.toLocaleString()}</p>
-                <p><strong>Currently Active:</strong> {reports.activeUsers.toLocaleString()}</p>
-                <p><strong>New This Month:</strong> {reports.newUsersThisMonth}</p>
-                <p><strong>Engagement Rate:</strong> {userEngagementRate}%</p>
+                <p>
+                  <strong>Total Registered:</strong>{" "}
+                  {reports.totalUsers.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Currently Active:</strong>{" "}
+                  {reports.activeUsers.toLocaleString()}
+                </p>
+                <p>
+                  <strong>New This Range:</strong> {reports.newUsersThisRange}
+                </p>
+                <p>
+                  <strong>Engagement Rate:</strong> {userEngagementRate}%
+                </p>
               </div>
             </div>
+
             <div className="summary-card">
               <h4>Complaint Analytics</h4>
               <div className="summary-content">
-                <p><strong>Total Complaints:</strong> {reports.totalComplaints.toLocaleString()}</p>
-                <p><strong>Resolved:</strong> {reports.resolvedComplaints.toLocaleString()}</p>
-                <p><strong>Pending:</strong> {reports.pendingComplaints.toLocaleString()}</p>
-                <p><strong>Resolution Rate:</strong> {reports.complaintResolutionRate}%</p>
+                <p>
+                  <strong>Total Complaints:</strong>{" "}
+                  {reports.totalComplaints.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Resolved:</strong>{" "}
+                  {reports.resolvedComplaints.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Pending:</strong>{" "}
+                  {reports.pendingComplaints.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Resolution Rate:</strong>{" "}
+                  {reports.complaintResolutionRate}%
+                </p>
               </div>
             </div>
+
             <div className="summary-card">
               <h4>System Health</h4>
               <div className="summary-content">
-                <p><strong>Avg Response Time:</strong> {reports.systemMetrics.avgResponseTime}</p>
-                <p><strong>User Satisfaction:</strong> {reports.systemMetrics.userSatisfaction}</p>
-                <p><strong>System Uptime:</strong> {reports.systemMetrics.systemUptime}</p>
-                <p><strong>Active Sessions:</strong> {reports.systemMetrics.activeSessions}</p>
+                <p>
+                  <strong>Avg Response Time:</strong>{" "}
+                  {reports.systemMetrics.avgResponseTime ?? "—"}
+                </p>
+                <p>
+                  <strong>User Satisfaction:</strong>{" "}
+                  {reports.systemMetrics.userSatisfaction ?? "—"}
+                </p>
+                <p>
+                  <strong>System Uptime:</strong>{" "}
+                  {reports.systemMetrics.systemUptime ?? "—"}
+                </p>
+                <p>
+                  <strong>Active Sessions:</strong>{" "}
+                  {reports.systemMetrics.activeSessions ?? "—"}
+                </p>
               </div>
             </div>
           </div>
