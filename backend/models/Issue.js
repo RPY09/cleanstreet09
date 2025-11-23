@@ -31,6 +31,7 @@ const issueSchema = new mongoose.Schema({
     enum: ["reported", "in progress", "resolved", "rejected"],
     default: "reported",
   },
+  resolvedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
   commentsCount: { type: Number, default: 0 },
   latestComment: {

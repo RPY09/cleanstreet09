@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6 }, // Stores the HASHED password
   role: { type: String, default: "user" },
   memberSince: { type: Date, default: Date.now },
+  lastActive: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("User", userSchema);

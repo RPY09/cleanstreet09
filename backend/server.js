@@ -27,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api", commentRoutes);
 app.use("/api/utils", utilsRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/admin", require("./routes/adminReports"));
 
 // Database Connection
 const connectDB = async () => {
