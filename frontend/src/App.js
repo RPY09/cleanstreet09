@@ -18,7 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
 import "./App.css";
 
-// --- 1. Protected Route Component ---
+// Protected Route Component
 const ProtectedRoute = ({ element: Component, ...rest }) => {
   const { user, loading } = useAuth();
 
@@ -29,15 +29,14 @@ const ProtectedRoute = ({ element: Component, ...rest }) => {
   return user ? <Component {...rest} /> : <Navigate to="/login" replace />;
 };
 
-// --- 2. Admin Route Component ---
+//  Admin Route Component
 const AdminRoute = ({ element: Component, ...rest }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return <div className="loading-screen">Checking Authorization...</div>;
   }
-
-  if (!user || user.role !== "admin") {
+  if (!user || !["admin", "globaladmin"].includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 

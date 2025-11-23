@@ -18,8 +18,11 @@ const Navbar = () => {
 
   // Helper function to check if a path is active
   const isActive = (path) => {
-    if (path === '/admin/overview') {
-      return location.pathname === '/admin' || location.pathname === '/admin/overview';
+    if (path === "/admin/overview") {
+      return (
+        location.pathname === "/admin" ||
+        location.pathname === "/admin/overview"
+      );
     }
     return location.pathname === path;
   };
@@ -64,7 +67,7 @@ const Navbar = () => {
         >
           <Link
             to="/"
-            className={`nav-link ${isActive('/') ? "active" : ""}`}
+            className={`nav-link ${isActive("/") ? "active" : ""}`}
             onClick={() => setOpen(false)}
           >
             <i
@@ -78,11 +81,13 @@ const Navbar = () => {
           {user ? (
             <>
               {/* ADMIN USER NAVIGATION */}
-              {user.role === "admin" ? (
+              {user.role === "admin" || user.role === "globaladmin" ? (
                 <>
                   <Link
                     to="/admin/overview"
-                    className={`nav-link ${isActive('/admin/overview') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/admin/overview") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -95,7 +100,9 @@ const Navbar = () => {
 
                   <Link
                     to="/admin/complaints"
-                    className={`nav-link ${isActive('/admin/complaints') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/admin/complaints") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -108,7 +115,9 @@ const Navbar = () => {
 
                   <Link
                     to="/admin/users"
-                    className={`nav-link ${isActive('/admin/users') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/admin/users") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -121,7 +130,9 @@ const Navbar = () => {
 
                   <Link
                     to="/admin/reports"
-                    className={`nav-link ${isActive('/admin/reports') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/admin/reports") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -137,7 +148,9 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/dashboard"
-                    className={`nav-link ${isActive('/dashboard') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/dashboard") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -150,7 +163,9 @@ const Navbar = () => {
 
                   <Link
                     to="/report-issue"
-                    className={`nav-link ${isActive('/report-issue') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/report-issue") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -163,7 +178,9 @@ const Navbar = () => {
 
                   <Link
                     to="/complaints"
-                    className={`nav-link ${isActive('/complaints') ? "active" : ""}`}
+                    className={`nav-link ${
+                      isActive("/complaints") ? "active" : ""
+                    }`}
                     onClick={() => setOpen(false)}
                   >
                     <i
@@ -179,7 +196,7 @@ const Navbar = () => {
               <div className="nav-user" style={{ alignItems: "center" }}>
                 <Link
                   to="/profile"
-                  className={`nav-link ${isActive('/profile') ? "active" : ""}`}
+                  className={`nav-link ${isActive("/profile") ? "active" : ""}`}
                   onClick={() => setOpen(false)}
                 >
                   <i
@@ -203,7 +220,7 @@ const Navbar = () => {
             <div className="nav-auth">
               <Link
                 to="/login"
-                className={`nav-link ${isActive('/login') ? "active" : ""}`}
+                className={`nav-link ${isActive("/login") ? "active" : ""}`}
                 onClick={() => setOpen(false)}
               >
                 <i
@@ -215,7 +232,9 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/register"
-                className={`nav-link register ${isActive('/register') ? "active" : ""}`}
+                className={`nav-link register ${
+                  isActive("/register") ? "active" : ""
+                }`}
                 onClick={() => setOpen(false)}
               >
                 <i

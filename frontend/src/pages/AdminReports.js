@@ -3,10 +3,6 @@ import { useAuth } from "../context/AuthContext";
 import "./AdminReports.css";
 import axios from "axios";
 
-/**
- * Local axios instance (kept in this file per your request)
- * Automatically attaches JWT from localStorage if present.
- */
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
   timeout: 15000,
@@ -25,11 +21,11 @@ const AdminReports = () => {
 
   const [reports, setReports] = useState({
     totalUsers: 0,
-    activeUsers: 0, // backend may provide this later; default 0
+    activeUsers: 0,
     totalComplaints: 0,
     resolvedComplaints: 0,
     pendingComplaints: 0,
-    newUsersThisRange: 0, // <-- matches backend: newUsersThisRange
+    newUsersThisRange: 0,
     complaintResolutionRate: 0,
     userGrowth: [],
     complaintTrends: [],
@@ -42,7 +38,6 @@ const AdminReports = () => {
   const [selectedReport, setSelectedReport] = useState("overview");
   const [error, setError] = useState(null);
 
-  // Fetch reports from backend and map safely into frontend state shape
   const fetchReportsData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -50,8 +45,6 @@ const AdminReports = () => {
       const res = await api.get(`/admin/reports?range=${timeRange}`);
       const data = res.data && res.data.success ? res.data : res.data || {};
 
-      // Map backend fields to frontend-safe values
-      // Map backend fields to frontend-safe values
       const mapped = {
         totalUsers: Number(data.totalUsers ?? 0),
         activeUsers: Number(data.activeUsers ?? data.totalUsers ?? 0),
@@ -67,7 +60,6 @@ const AdminReports = () => {
           ? data.complaintTrends
           : [],
         systemMetrics: data.systemMetrics ?? {},
-        // <<< NEW SAFE FIELDS (defaults to 0 counts)
         issueStatusCounts:
           typeof data.issueStatusCounts === "object" &&
           data.issueStatusCounts !== null
@@ -90,10 +82,8 @@ const AdminReports = () => {
     }
   }, [timeRange]);
 
-  // Export report (JSON for now)
   const exportReport = (format) => {
     if (format === "csv") {
-      // simple CSV conversion for the top-level numeric metrics (optional)
       const rows = [
         ["metric", "value"],
         ["totalUsers", reports.totalUsers],
@@ -115,7 +105,6 @@ const AdminReports = () => {
       return;
     }
 
-    // default: json
     const dataStr = JSON.stringify(reports, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = window.URL.createObjectURL(blob);
@@ -126,20 +115,16 @@ const AdminReports = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Create donut segments using conic-gradient
-  // Create donut segments using conic-gradient (safe)
+  // FIXED: Use (data || {}) as a fallback for Object.entries to prevent error
   const buildDonut = (data = {}, colors = []) => {
-    // Ensure `data` is an object
     if (!data || typeof data !== "object") {
-      // return a neutral gray donut
       return "conic-gradient(#eee 0deg 360deg)";
     }
 
-    const entries = Object.entries(data);
+    const entries = Object.entries(data || {}); // <-- FIX 1: Defensive coding
     const total = entries.reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
 
     if (total === 0) {
-      // no data — neutral donut
       return "conic-gradient(#eee 0deg 360deg)";
     }
 
@@ -156,12 +141,11 @@ const AdminReports = () => {
     return `conic-gradient(${gradientParts.join(", ")})`;
   };
 
-  // Load data when user/timeRange changes
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
-      if (user && user.role === "admin") {
+      if (user && ["admin", "globaladmin"].includes(user.role)) {
         if (mounted) await fetchReportsData();
       } else {
         if (mounted) setLoading(false);
@@ -175,14 +159,13 @@ const AdminReports = () => {
     };
   }, [user, timeRange, fetchReportsData]);
 
-  // Derived metrics
   const userEngagementRate =
     reports.totalUsers > 0
       ? Math.round((reports.activeUsers / reports.totalUsers) * 100)
       : 0;
 
   // Access control: only admins allowed
-  if (!user || user.role !== "admin") {
+  if (!user || !["admin", "globaladmin"].includes(user.role)) {
     return (
       <div className="admin-reports">
         <div className="container">
@@ -219,7 +202,7 @@ const AdminReports = () => {
           </div>
           <div className="header-actions">
             <button
-              className="btn btn-primary"
+              className="btn export-primary"
               onClick={() => exportReport("json")}
             >
               <span className="btn-icon">
@@ -409,10 +392,11 @@ const AdminReports = () => {
                   ></div>
 
                   <div className="donut-legend">
-                    {Object.entries(reports.issueStatusCounts).map(
+                    {/* FIX 2: Use (reports.issueStatusCounts || {}) */}
+                    {Object.entries(reports.issueStatusCounts || {}).map(
                       ([label, value], i) => {
                         const statusTotal = Object.values(
-                          reports.issueStatusCounts
+                          reports.issueStatusCounts || {}
                         ).reduce((a, b) => a + b, 0);
 
                         const percent =
@@ -459,7 +443,8 @@ const AdminReports = () => {
                   ></div>
 
                   <div className="donut-legend">
-                    {Object.entries(reports.priorityCounts).map(
+                    {/* FIX 3: Use (reports.priorityCounts || {}) */}
+                    {Object.entries(reports.priorityCounts || {}).map(
                       ([key, value], idx) => (
                         <div className="legend-row" key={key}>
                           <span

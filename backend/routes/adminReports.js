@@ -87,7 +87,7 @@ function getLastNMonthsLabels(n, endDate = new Date()) {
 
 router.get("/reports", protect, async (req, res) => {
   try {
-    if (!req.user || req.user.role !== "admin") {
+    if (!req.user || !["admin", "globaladmin"].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -95,9 +95,9 @@ router.get("/reports", protect, async (req, res) => {
 
     // GLOBAL ADMIN SUPPORT
     const postalFilter =
-      adminPostal === "all"
+      req.user.role === "globaladmin"
         ? { postalCode: { $exists: true } }
-        : { postalCode: adminPostal };
+        : { postalCode: req.user.postalCode };
 
     const range = (req.query.range || "month").toLowerCase();
     const startDate = getStartDate(range);

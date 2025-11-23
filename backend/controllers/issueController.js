@@ -167,11 +167,16 @@ exports.getAllIssues = async (req, res) => {
     const userPostalRaw = user && user.postalCode ? user.postalCode : "";
     const userPostalNorm = normalizePostal(userPostalRaw);
 
-    if (userPostalNorm) {
-      myAreaReports = await Issue.find({ postalCode: userPostalRaw })
+    if (user.role === "globaladmin") {
+      // GLOBAL ADMIN GETS ALL ISSUES
+      myAreaReports = await Issue.find()
         .populate(populationOptions)
         .select(selection)
         .sort({ createdAt: -1 });
+
+      otherReports = [];
+    } else if (userPostalNorm) {
+      myAreaReports = await Issue.find({ postalCode: userPostalRaw });
 
       otherReports = await Issue.find({ postalCode: { $ne: userPostalRaw } })
         .populate(populationOptions)

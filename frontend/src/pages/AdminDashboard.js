@@ -13,6 +13,7 @@ import Point from "ol/geom/Point";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Icon, Style } from "ol/style";
+
 import CleanStreetPointer from "../assets/cleanstreetPointer.png";
 import RedPointer from "../assets/redpointer.png";
 import YellowPointer from "../assets/yellowpointer.png";
@@ -27,43 +28,33 @@ const getCoordinatesFromPostalCode = async (postalCode, locationText) => {
         query
       )}`
     );
+
     const data = await res.json();
     if (data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
-      };
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
     }
-    // fallback: Hyderabad
+
     return { lat: 17.385, lng: 78.4867 };
   } catch (err) {
-    console.error("Geocode error:", err);
     return { lat: 17.385, lng: 78.4867 };
   }
 };
 
-const normalizePostal = (p) => {
-  if (!p && p !== 0) return "";
-  try {
-    return String(p)
-      .replace(/[^0-9a-zA-Z]/g, "")
-      .toLowerCase()
-      .trim();
-  } catch (e) {
-    return String(p || "").trim();
-  }
-};
-
-const Dashboard = () => {
+const AdminDashboard = () => {
   const { user } = useAuth();
+
+  const isGlobalAdmin = user?.role === "globaladmin";
+
   const [stats, setStats] = useState({
     totalIssues: 0,
     pending: 0,
     inProgress: 0,
     resolved: 0,
   });
+
   const [activities, setActivities] = useState([]);
   const [mapIssues, setMapIssues] = useState([]);
+
   const [showMap, setShowMap] = useState(false);
   const mapRef = useRef(null);
   const olMap = useRef(null);
@@ -74,6 +65,7 @@ const Dashboard = () => {
 
   const fetchIssues = useCallback(async () => {
     if (!user) return;
+
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -82,92 +74,96 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const rawLists = [
+      // Combine various issue arrays returned by backend
+      const lists = [
         res.data?.localIssues,
         res.data?.myAreaReports,
         res.data?.otherIssues,
         res.data?.otherReports,
         res.data?.issues,
       ];
-      const allFlat = [];
-      rawLists.forEach((lst) => {
-        if (Array.isArray(lst)) allFlat.push(...lst);
-      });
 
-      if (allFlat.length === 0 && Array.isArray(res.data)) {
-        allFlat.push(...res.data);
+      const all = [];
+      lists.forEach((l) => Array.isArray(l) && all.push(...l));
+
+      if (all.length === 0 && Array.isArray(res.data)) {
+        all.push(...res.data);
       }
 
+      // Deduplicate
       const seen = new Set();
-      const uniqueIssues = [];
-      for (const issue of allFlat) {
+      const unique = [];
+
+      for (const issue of all) {
         const id = issue?._id || issue?.id;
         if (!id) continue;
-        if (!seen.has(String(id))) {
-          seen.add(String(id));
-          uniqueIssues.push(issue);
+
+        if (!seen.has(id)) {
+          seen.add(id);
+          unique.push(issue);
         }
       }
 
-      const userPostal = (user?.postalCode || "").toString().trim();
+      const userPostal = (user?.postalCode || "").trim();
+      let issuesToDisplay = [];
 
-      const myAreaIssues = [];
-      const otherIssues = [];
+      if (isGlobalAdmin) {
+        // Global Admin sees ALL issues
+        issuesToDisplay = unique;
+      } else {
+        issuesToDisplay = unique.filter(
+          (i) => (i.postalCode || "").toString().trim() === userPostal
+        );
+      }
 
-      uniqueIssues.forEach((issue) => {
-        const issuePostal = (issue.postalCode || "").toString().trim();
-        if (userPostal && issuePostal && issuePostal === userPostal)
-          myAreaIssues.push(issue);
-        else otherIssues.push(issue);
-      });
-      // console.log("User postal in dashboard:", user?.postalCode);
-      // console.log("Fetched issues:", uniqueIssues.length);
-      // console.log("Matched issues (myArea):", myAreaIssues.length);
-      // console.log(
-      //   "Statuses:",
-      //   myAreaIssues.map((i) => i.status)
-      // );
-
-      // Sort newest first
-      const sortedArea = myAreaIssues.sort(
+      const sorted = [...issuesToDisplay].sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
+      setActivities(sorted.slice(0, 3));
 
-      // Update dashboard UI
-      setActivities(sortedArea.slice(0, 3));
       setStats({
-        totalIssues: myAreaIssues.length,
-        pending: myAreaIssues.filter(
+        totalIssues: issuesToDisplay.length,
+        pending: issuesToDisplay.filter(
           (i) => (i.status || "").toLowerCase() === "reported"
         ).length,
-        inProgress: myAreaIssues.filter(
+        inProgress: issuesToDisplay.filter(
           (i) => (i.status || "").toLowerCase() === "in progress"
         ).length,
-        resolved: myAreaIssues.filter(
+        resolved: issuesToDisplay.filter(
           (i) => (i.status || "").toLowerCase() === "resolved"
         ).length,
       });
 
-      setMapIssues(uniqueIssues);
+      setMapIssues(issuesToDisplay);
     } catch (err) {
       console.error("Error fetching issues:", err);
     }
-  }, [user]);
+  }, [user, isGlobalAdmin]);
 
   useEffect(() => {
-    fetchIssues();
-  }, [fetchIssues]);
+    // Only fetch if user object is available (user logged in)
+    if (user) {
+      fetchIssues();
+    }
+  }, [user, fetchIssues]);
 
   useEffect(() => {
     if (!showMap || !user) return;
 
     const initMap = async () => {
-      const { lat, lng } = await getCoordinatesFromPostalCode(
-        user.postalCode,
-        user.location
-      );
+      let coords;
 
-      const center = fromLonLat([lng, lat]);
+      if (isGlobalAdmin) {
+        // Center of India for global admin (or a better global center)
+        coords = { lat: 20.5937, lng: 78.9629 };
+      } else {
+        coords = await getCoordinatesFromPostalCode(
+          user.postalCode,
+          user.location
+        );
+      }
+
+      const center = fromLonLat([coords.lng, coords.lat]);
 
       if (!olMap.current) {
         olMap.current = new Map({
@@ -178,33 +174,36 @@ const Dashboard = () => {
           ],
           view: new View({
             center,
-            zoom: 14,
+            zoom: isGlobalAdmin ? 5 : 14,
           }),
         });
       } else {
         olMap.current.setTarget(mapRef.current);
         olMap.current.getView().setCenter(center);
-        olMap.current.getView().setZoom(14);
+        olMap.current.getView().setZoom(isGlobalAdmin ? 5 : 14);
       }
 
       vectorSourceRef.current.clear();
+
       const features = mapIssues
         .map((issue) => {
           const lng =
             issue.location?.lng ||
             issue.longitude ||
             issue.location?.coordinates?.[0];
+
           const lat =
             issue.location?.lat ||
             issue.latitude ||
             issue.location?.coordinates?.[1];
-          if (!lng || !lat || isNaN(lng) || isNaN(lat)) return null;
+
+          if (!lng || !lat) return null;
 
           const priority = (issue.priority || "").toLowerCase();
-          let iconSrc = CleanStreetPointer;
-          if (priority === "high") iconSrc = RedPointer;
-          else if (priority === "medium") iconSrc = YellowPointer;
-          else if (priority === "low") iconSrc;
+          let icon = CleanStreetPointer;
+
+          if (priority === "high") icon = RedPointer;
+          else if (priority === "medium") icon = YellowPointer;
 
           const feature = new Feature({
             geometry: new Point(fromLonLat([Number(lng), Number(lat)])),
@@ -213,10 +212,9 @@ const Dashboard = () => {
           feature.setStyle(
             new Style({
               image: new Icon({
-                src: iconSrc,
+                src: icon,
                 scale: 0.06,
                 anchor: [0.5, 1],
-                // color: color,
               }),
             })
           );
@@ -238,22 +236,26 @@ const Dashboard = () => {
     return () => {
       if (olMap.current) olMap.current.setTarget(null);
     };
-  }, [showMap, user, mapIssues]);
+  }, [showMap, mapIssues, user, isGlobalAdmin]);
 
   const getStatusClass = (status) => {
     const s = (status || "").toLowerCase();
     if (s === "resolved") return "status-resolved";
     if (s === "reported") return "status-reported";
-    if (s === "updated") return "status-updated";
     if (s === "in progress") return "status-in-progress";
     return "";
   };
 
   return (
     <div className="dashboard-page">
-      <h1 className="dashboard-title">Dashboard</h1>
+      <h1 className="dashboard-title">
+        {isGlobalAdmin ? "Global Admin Dashboard" : "Dashboard"}
+      </h1>
+
       <p className="dashboard-subtitle">
-        See what issues your community is reporting and show your support
+        {isGlobalAdmin
+          ? "You are viewing all complaints across all areas."
+          : "See what issues your community is reporting and show your support"}
       </p>
 
       {/* Stats */}
@@ -261,18 +263,21 @@ const Dashboard = () => {
         <div className="stat-card">
           <i className="bi bi-exclamation-triangle"></i>
           <h2>{stats.totalIssues}</h2>
-          <p>Total Issues (your area)</p>
+          <p>{isGlobalAdmin ? "Total Issues (All Areas)" : "Total Issues"}</p>
         </div>
+
         <div className="stat-card">
-          <i class="bi bi-clock-history"></i>
+          <i className="bi bi-clock-history"></i>
           <h2>{stats.pending}</h2>
           <p>Pending</p>
         </div>
+
         <div className="stat-card">
           <i className="bi bi-hourglass-split"></i>
           <h2>{stats.inProgress}</h2>
           <p>In Progress</p>
         </div>
+
         <div className="stat-card">
           <i className="bi bi-check2-circle"></i>
           <h2>{stats.resolved}</h2>
@@ -280,10 +285,15 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent Activity + Quick Actions */}
+      {/* Recent Activity */}
       <div className="activity-actions-container">
         <div className="activity-section">
-          <h3>Recent Activity (your area)</h3>
+          <h3>
+            {isGlobalAdmin
+              ? "Recent Activity (All Areas)"
+              : "Recent Activity (Your Area)"}
+          </h3>
+
           <div className="activity-table">
             {activities.length ? (
               activities.map((a) => (
@@ -295,14 +305,15 @@ const Dashboard = () => {
                           ? "bi-check2-circle"
                           : a.status === "reported"
                           ? "bi-plus-circle"
-                          : " bi-hourglass-split"
+                          : "bi-hourglass-split"
                       }`}
                     ></i>
                     <div>
                       <h4>{a.title}</h4>
-                      <p>{new Date(a.createdAt).toLocaleTimeString()}</p>
+                      <p>{new Date(a.createdAt).toLocaleString()}</p>
                     </div>
                   </div>
+
                   <span
                     className={`activity-status ${getStatusClass(a.status)}`}
                   >
@@ -313,13 +324,19 @@ const Dashboard = () => {
                 </div>
               ))
             ) : (
-              <p className="no-activity">No recent activity in your area</p>
+              <p className="no-activity">
+                {isGlobalAdmin
+                  ? "No activity found in the system"
+                  : "No recent activity in your area"}
+              </p>
             )}
           </div>
         </div>
 
+        {/* Quick Actions */}
         <div className="quick-actions">
           <h3>Quick Actions</h3>
+
           <Link to="/report-issue" className="btns primary">
             <i className="bi bi-plus-lg me-2"></i> Report New Issue
           </Link>
@@ -341,8 +358,14 @@ const Dashboard = () => {
             className="modal-box map-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2>Reported Issues Map</h2>
+            <h2>
+              {isGlobalAdmin
+                ? "Reported Issues Across All Areas"
+                : "Reported Issues Map"}
+            </h2>
+
             <div ref={mapRef} id="issueMap" className="map-container"></div>
+
             <button className="btn close-btn" onClick={() => setShowMap(false)}>
               <i className="bi bi-x-lg"></i> Close
             </button>
@@ -353,4 +376,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

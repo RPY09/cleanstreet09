@@ -674,9 +674,10 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.95rem;
+  justify-content: center;
 }
 
-.btn-primary {
+.export-primary {
   background: linear-gradient(40deg, var(--g-4), var(--g-accent));
   color: var(--g-pale);
   box-shadow: 0 6px 20px rgba(22, 56, 50, 0.2);
