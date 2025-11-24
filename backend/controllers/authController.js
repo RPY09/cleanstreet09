@@ -76,18 +76,30 @@ exports.loginUser = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
+
     if (!user) {
       return res
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
     }
+
+    if (user.status === "BLOCKED") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is blocked. Contact support.",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
     }
+
     const token = generateToken(user._id);
+
     res.status(200).json({
       success: true,
       message: "Login successful",

@@ -9,6 +9,7 @@ const issueRoutes = require("./routes/issueRoutes");
 const utilsRoutes = require("./routes/utilsRoutes");
 const adminIssueRoutes = require("./routes/adminIssueRoutes");
 const adminReportsRoutes = require("./routes/adminReports");
+const adminUserRoutes = require("./routes/adminUserRoutes");
 
 dotenv.config();
 
@@ -27,11 +28,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api", commentRoutes);
 app.use("/api/utils", utilsRoutes);
 app.use("/api/issues", issueRoutes);
-
 app.use("/api/admin/issues", adminIssueRoutes);
-
 app.use("/api/admin/reports", adminReportsRoutes);
-
+app.use("/api/admin/users", adminUserRoutes);
 // Database Connection
 const connectDB = async () => {
   try {

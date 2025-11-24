@@ -41,5 +41,16 @@ router.get("/public/users-count", async (req, res) => {
     res.status(500).json({ error: "Error fetching user count" });
   }
 });
+router.get("/public/postal-codes", async (req, res) => {
+  try {
+    const users = await User.find().select("postalCode");
+    const postalSet = new Set(
+      users.map((u) => u.postalCode).filter((p) => p && /^[0-9]{6}$/.test(p))
+    );
+    res.json({ postalCodes: Array.from(postalSet) });
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching postal codes" });
+  }
+});
 
 module.exports = router;

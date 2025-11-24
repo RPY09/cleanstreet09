@@ -307,7 +307,7 @@ const Profile = () => {
         <div className="profile-layout">
           {/* Sidebar */}
           <div className="profile-sidebar">
-            <div className="user-card">
+            <div className="users-card">
               <div className="user-avatar">{avatarInitial}</div>
               <div className="user-info">
                 <h3>{user?.name}</h3>

@@ -131,7 +131,7 @@ body,
 }
 
 /* User card */
-.user-card {
+.users-card {
   background: linear-gradient(180deg, var(--g-pale), var(--g-accent));
   padding: 16px;
   border-radius: var(--card-radius);

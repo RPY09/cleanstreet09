@@ -50,12 +50,12 @@ export default function Home() {
         }
 
         const totalIssues = uniqueIssues.length;
-        const uniquePostal = new Set(
-          uniqueIssues.map((i) => (i.postalCode || "").trim())
+        const postalRes = await axios.get(
+          "http://localhost:5000/api/auth/public/postal-codes"
         );
-        const postalCodes = uniquePostal.size;
 
-        // 4️⃣ Recently Resolved
+        const postalCodes = postalRes.data.postalCodes.length;
+
         const resolvedIssues = uniqueIssues
           .filter((i) => (i.status || "").toLowerCase() === "resolved")
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))

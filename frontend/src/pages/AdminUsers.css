@@ -1,0 +1,319 @@
+/* --- Global & Reset --- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.users-wrapper {
+  padding: 60px 40px;
+  padding-top: 120px;
+  background: radial-gradient(circle at top left, #134e4a, #042f2e, #000000);
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* --- Header Section --- */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-top: 5px;
+  font-weight: 500;
+}
+
+/* --- Tabs (Pill Style) --- */
+.tabs-container {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px;
+  border-radius: 50px;
+  display: inline-flex;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+  padding: 10px 24px;
+  cursor: pointer;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  color: #fff;
+}
+
+.tab-btn.active {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* --- Search Bar --- */
+.search-container {
+  position: relative;
+}
+
+.search-input {
+  padding: 14px 24px;
+  padding-left: 45px;
+  width: 300px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+}
+
+.search-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #10b981;
+  width: 320px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* --- Glass Table Container --- */
+.user-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: transparent;
+}
+
+/* --- Table Styling --- */
+.user-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 15px;
+}
+
+.user-table th {
+  text-align: left;
+  padding: 0 25px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #94a3b8;
+  padding-bottom: 10px;
+}
+
+.user-table th.text-center {
+  text-align: center;
+}
+
+/* Floating Row Effect */
+.user-table tbody tr {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-table tbody tr:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  background: #fff;
+  z-index: 10;
+  position: relative;
+}
+
+.user-table td {
+  padding: 20px 25px;
+  color: #1e293b; /* Dark slate for text */
+  vertical-align: middle;
+  border: none;
+}
+
+/* Round corners for the row */
+.user-table td:first-child {
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.user-table td:last-child {
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+/* --- User Info --- */
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.user-email {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* --- Badges --- */
+.role-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.role-badge.admin {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.role-badge.user {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-dot-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-dot-container.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-dot-container.blocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+}
+
+.status-dot-container.active .status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.status-dot-container.blocked .status-dot {
+  background: #ef4444;
+}
+
+/* --- Action Buttons --- */
+.actions-col {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.actions-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 12px; /* Squircle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.actions-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  filter: brightness(1.1);
+}
+
+.block-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.unblock-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.promote-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.delete-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* --- Loading & No Data --- */
+.loader-container {
+  text-align: center;
+  padding: 60px;
+  color: #fff;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}

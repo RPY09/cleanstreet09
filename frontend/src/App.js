@@ -17,6 +17,7 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
 import AdminManageComplaints from "./pages/AdminManageComplaints";
+import AdminUsers from "./pages/AdminUsers";
 import "./App.css";
 
 // Protected Route Component
@@ -87,6 +88,10 @@ function App() {
               <Route
                 path="/admin/complaints"
                 element={<AdminRoute element={AdminManageComplaints} />}
+              />
+              <Route
+                path="/admin/users"
+                element={<AdminRoute element={AdminUsers} />}
               />
 
               {/* Fallback to main admin dashboard for any admin route */}

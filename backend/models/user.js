@@ -20,6 +20,11 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true, minlength: 6 }, // Stores the HASHED password
   role: { type: String, default: "user" },
+  status: {
+    type: String,
+    enum: ["ACTIVE", "BLOCKED"],
+    default: "ACTIVE",
+  },
   memberSince: { type: Date, default: Date.now },
   lastActive: { type: Date, default: Date.now },
 });
