@@ -27,7 +27,6 @@
   box-sizing: border-box;
 }
 
-/* lock body scroll when modal open */
 body.modal-open {
   overflow: hidden;
 }
@@ -322,11 +321,11 @@ body.modal-open {
   padding: 0.7rem 0.9rem;
   border-top: 1px solid rgba(5, 31, 32, 0.06);
 }
-.vote-buttons {
+.votes-buttons {
   display: flex;
   gap: 0.6rem;
 }
-.vote-btn,
+.votes-btn,
 .view-btn {
   background: linear-gradient(90deg, var(--g-3), var(--g-4));
   color: var(--g-pale);
@@ -339,12 +338,12 @@ body.modal-open {
   cursor: pointer;
   font-weight: 700;
 }
-.vote-btn:hover,
+.votes-btn:hover,
 .view-btn:hover {
   background: linear-gradient(90deg, var(--g-2), var(--g-darkest));
   transform: translateY(-2px);
 }
-.vote-btn i,
+.votes-btn i,
 .view-btn i {
   font-size: 1rem;
   color: var(--g-pale);
@@ -407,7 +406,7 @@ select:hover {
   width: 100%;
   max-width: 1100px;
   max-height: 88vh;
-  overflow: hidden; /* prevents page scroll; internal areas will scroll if needed */
+  overflow: hidden;
   color: var(--text-on-light);
   box-shadow: var(--card-shadow);
   display: flex;

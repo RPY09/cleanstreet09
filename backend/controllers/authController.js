@@ -110,6 +110,16 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("_id name");
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 exports.changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
@@ -180,8 +190,6 @@ exports.updateUserProfile = async (req, res) => {
     if (user) {
       user.name = req.body.name || user.name;
       user.username = req.body.username || user.username;
-      // Email must not be editable via this endpoint for safety
-      // user.email = req.body.email || user.email; // intentionally not allowed
       user.phone = req.body.phone || user.phone;
       user.location = req.body.location || user.location;
       user.postalCode = extractPostalCode(req.body.location) || user.postalCode;

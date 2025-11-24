@@ -38,6 +38,28 @@ const AdminReports = () => {
   const [selectedReport, setSelectedReport] = useState("overview");
   const [error, setError] = useState(null);
 
+  const getLargestPercentage = (data) => {
+    if (!data || typeof data !== "object") return null;
+
+    const entries = Object.entries(data);
+    const total = entries.reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
+
+    if (total === 0) return null;
+
+    let maxPercent = 0;
+    let maxLabel = "";
+
+    entries.forEach(([key, value]) => {
+      const percent = (Number(value) / total) * 100;
+      if (percent > maxPercent) {
+        maxPercent = percent;
+        maxLabel = key;
+      }
+    });
+
+    return { label: maxLabel, percent: maxPercent.toFixed(1) };
+  };
+
   const fetchReportsData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -115,13 +137,12 @@ const AdminReports = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  // FIXED: Use (data || {}) as a fallback for Object.entries to prevent error
   const buildDonut = (data = {}, colors = []) => {
     if (!data || typeof data !== "object") {
       return "conic-gradient(#eee 0deg 360deg)";
     }
 
-    const entries = Object.entries(data || {}); // <-- FIX 1: Defensive coding
+    const entries = Object.entries(data || {});
     const total = entries.reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
 
     if (total === 0) {
@@ -191,6 +212,8 @@ const AdminReports = () => {
     );
   }
 
+  const largestPriority = getLargestPercentage(reports.priorityCounts);
+  const largestStatus = getLargestPercentage(reports.issueStatusCounts);
   return (
     <div className="admin-reports">
       <div className="container">
@@ -206,7 +229,7 @@ const AdminReports = () => {
               onClick={() => exportReport("json")}
             >
               <span className="btn-icon">
-                <i class="bi bi-download"></i>
+                <i className="bi bi-download"></i>
               </span>
               Export Report
             </button>
@@ -227,7 +250,7 @@ const AdminReports = () => {
             <div className="metric-card">
               <div className="metric-icon">
                 <span>
-                  <i class="bi bi-people"></i>
+                  <i className="bi bi-people"></i>
                 </span>
               </div>
               <div className="metric-content">
@@ -244,7 +267,7 @@ const AdminReports = () => {
             <div className="metric-card">
               <div className="metric-icon">
                 <span>
-                  <i class="bi bi-person-check"></i>
+                  <i className="bi bi-person-check"></i>
                 </span>
               </div>
               <div className="metric-content">
@@ -261,7 +284,7 @@ const AdminReports = () => {
             <div className="metric-card">
               <div className="metric-icon">
                 <span>
-                  <i class="bi bi-exclamation-triangle"></i>
+                  <i className="bi bi-exclamation-triangle"></i>
                 </span>
               </div>
               <div className="metric-content">
@@ -278,7 +301,7 @@ const AdminReports = () => {
             <div className="metric-card">
               <div className="metric-icon">
                 <span>
-                  <i class="bi bi-bullseye"></i>
+                  <i className="bi bi-bullseye"></i>
                 </span>
               </div>
               <div className="metric-content">
@@ -331,7 +354,7 @@ const AdminReports = () => {
                       className="btn btn-outline"
                       onClick={fetchReportsData}
                     >
-                      <i class="bi bi-arrow-clockwise"></i>
+                      <i className="bi bi-arrow-clockwise"></i>
                       Refresh Data
                     </button>
                   </div>
@@ -375,7 +398,7 @@ const AdminReports = () => {
               </div>
 
               <div className="pie-charts-wrapper">
-                {/* Issue Status Donut */}
+                {/* Issue Status Donut  */}
                 <div className="pie-card">
                   <h4>Issue Status Distribution</h4>
 
@@ -389,10 +412,21 @@ const AdminReports = () => {
                         "#9E9E9E", // rejected
                       ]),
                     }}
-                  ></div>
+                  >
+                    {largestStatus && (
+                      <div className="donut-center-content">
+                        <span className="donut-percent">
+                          {largestStatus.percent}%
+                        </span>
+                        <span className="donut-label">
+                          {largestStatus.label}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="donut-legend">
-                    {/* FIX 2: Use (reports.issueStatusCounts || {}) */}
+                    {/* ... Issue Status Legend Mapping ... */}
                     {Object.entries(reports.issueStatusCounts || {}).map(
                       ([label, value], i) => {
                         const statusTotal = Object.values(
@@ -440,25 +474,49 @@ const AdminReports = () => {
                         "#daf1de", // low
                       ]),
                     }}
-                  ></div>
+                  >
+                    {largestPriority && (
+                      <div className="donut-center-content">
+                        <span className="donut-percent">
+                          {largestPriority.percent}%
+                        </span>
+                        <span className="donut-label">
+                          {largestPriority.label}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="donut-legend">
-                    {/* FIX 3: Use (reports.priorityCounts || {}) */}
                     {Object.entries(reports.priorityCounts || {}).map(
-                      ([key, value], idx) => (
-                        <div className="legend-row" key={key}>
-                          <span
-                            className="legend-color"
-                            style={{
-                              background: ["#051f20", "#235347", "#daf1de"][
-                                idx
-                              ],
-                            }}
-                          ></span>
-                          <span className="legend-label">{key}</span>
-                          <span className="legend-value">{value}</span>
-                        </div>
-                      )
+                      ([key, value], idx) => {
+                        const priorityTotal = Object.values(
+                          reports.priorityCounts || {}
+                        ).reduce((a, b) => a + b, 0);
+
+                        // Calculate percentage
+                        const percent =
+                          priorityTotal > 0
+                            ? ((value / priorityTotal) * 100).toFixed(1)
+                            : 0;
+
+                        const colors = ["#051f20", "#235347", "#daf1de"];
+
+                        return (
+                          <div className="legend-row" key={key}>
+                            <span
+                              className="legend-color"
+                              style={{
+                                background: colors[idx],
+                              }}
+                            ></span>
+
+                            <span className="legend-text">
+                              {key} — <strong>{value}</strong> ({percent}%)
+                            </span>
+                          </div>
+                        );
+                      }
                     )}
                   </div>
                 </div>
@@ -507,7 +565,7 @@ const AdminReports = () => {
                     onClick={() => exportReport("json")}
                   >
                     <span className="action-icon">
-                      <i class="bi bi-clipboard2-data"></i>
+                      <i className="bi bi-clipboard2-data"></i>
                     </span>
                     JSON Report
                   </button>
@@ -516,13 +574,13 @@ const AdminReports = () => {
                     onClick={() => exportReport("csv")}
                   >
                     <span className="action-icon">
-                      <i class="bi bi-pass"></i>
+                      <i className="bi bi-pass"></i>
                     </span>
                     CSV Export
                   </button>
                   <button className="action-btn" onClick={fetchReportsData}>
                     <span className="action-icon">
-                      <i class="bi bi-arrow-clockwise"></i>
+                      <i className="bi bi-arrow-clockwise"></i>
                     </span>
                     Refresh Data
                   </button>

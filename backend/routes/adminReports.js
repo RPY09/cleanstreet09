@@ -85,7 +85,7 @@ function getLastNMonthsLabels(n, endDate = new Date()) {
   return labels;
 }
 
-router.get("/reports", protect, async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     if (!req.user || !["admin", "globaladmin"].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Access denied" });

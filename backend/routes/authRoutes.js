@@ -9,9 +9,11 @@ const {
   changePassword,
   verifyOtpOnly,
   resetPasswordWithOtp,
+  getAllUsers,
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/authMiddleware");
+const User = require("../models/user");
 
 const router = express.Router();
 
@@ -29,5 +31,15 @@ router.get("/dashboard", protect, getDashboardData);
 // Protected profile update and change-password
 router.put("/profile", protect, updateUserProfile);
 router.put("/change-password", protect, changePassword);
+router.get("/allusers", getAllUsers);
+
+router.get("/public/users-count", async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching user count" });
+  }
+});
 
 module.exports = router;

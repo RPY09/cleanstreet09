@@ -2,8 +2,10 @@ const express = require("express");
 const {
   reportIssue,
   getAllIssues,
-  // Removed addComment (comments handled in commentRoutes)
+  getAllIssuesPublicSafe,
   toggleVote,
+  updateIssueStatus,
+  deleteIssue,
 } = require("../controllers/issueController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -18,8 +20,12 @@ const upload = multer({
 
 router.post("/", protect, upload.array("images", 3), reportIssue);
 router.get("/", protect, getAllIssues);
+router.get("/public", getAllIssuesPublicSafe);
 
-// Make vote route explicit to avoid collisions with comments route
 router.post("/:id/vote/:type", protect, toggleVote);
+
+router.patch("/admin/issues/:issueId/status", protect, updateIssueStatus);
+
+router.delete("/admin/issues/:issueId", protect, deleteIssue);
 
 module.exports = router;

@@ -1,86 +1,195 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import './Home.css';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import "./Home.css";
+import axios from "axios";
 
-const Home = () => {
+export default function Home() {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalIssues: 0,
+    postalCodes: 0,
+  });
+
+  const [recentlySolved, setRecentlySolved] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const usersRes = await axios.get(
+        "http://localhost:5000/api/auth/public/users-count"
+      );
+      const totalUsers = usersRes.data.count || 0;
+
+      try {
+        let totalUsers = 0;
+        try {
+          const res = await axios.get(
+            "http://localhost:5000/api/auth/allusers"
+          );
+          totalUsers = Array.isArray(res.data) ? res.data.length : 0;
+        } catch (err) {
+          console.warn("Users endpoint not found");
+        }
+
+        const issuesRes = await axios.get(
+          "http://localhost:5000/api/issues/public"
+        );
+
+        const all = issuesRes.data.issues || [];
+        const seen = new Set();
+        const uniqueIssues = [];
+
+        for (const issue of all) {
+          if (issue?._id && !seen.has(issue._id)) {
+            seen.add(issue._id);
+            uniqueIssues.push(issue);
+          }
+        }
+
+        const totalIssues = uniqueIssues.length;
+        const uniquePostal = new Set(
+          uniqueIssues.map((i) => (i.postalCode || "").trim())
+        );
+        const postalCodes = uniquePostal.size;
+
+        // 4️⃣ Recently Resolved
+        const resolvedIssues = uniqueIssues
+          .filter((i) => (i.status || "").toLowerCase() === "resolved")
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 3);
+
+        setRecentlySolved(
+          resolvedIssues.map((i) => ({
+            id: i._id,
+            title: i.title,
+            date: new Date(i.createdAt).toLocaleDateString(),
+          }))
+        );
+
+        // Set Stats
+        setStats({
+          totalUsers,
+          totalIssues,
+          postalCodes,
+        });
+      } catch (err) {
+        console.error("Error loading homepage data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
-    <div className="home-page">
-      {/* Hero Section */}
-      <section className="hero-section">
-        <div className="container">
-          <div className="hero-content">
-            <h1>Make Your City Cleaner & Smarter</h1>
-            <p>Report civic issues, track progress, and help build a better community together.</p>
+    <div className="landing-container">
+      {/* SECTION 1: HERO */}
+      <section className="home-section hero">
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <div className="hero-left">
+            <h1>
+              Clean<span className="highlight">Street</span>
+            </h1>
+            <p className="caption">Report. Track. Resolve.</p>
+            <p className="brief">
+              A community-driven platform to build cleaner, smarter
+              neighborhoods. Report issues like potholes and garbage in
+              real-time and watch them get resolved.
+            </p>
+
             <div className="hero-actions">
-              {user ? (
+              {!user ? (
                 <>
-                  <Link to="/report-issue" className="btn btn-primary">
-                    + Report an Issue
+                  <Link to="/register" className="btn primary-btn">
+                    Get Started
                   </Link>
-                  <Link to="/complaints" className="btn btn-outline">
-                    View Reports
+                  <Link to="/login" className="btn outline-btn">
+                    Login
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link to="/register" className="btn btn-primary">
-                    Get Started
+                  <Link to="/report-issue" className="btn primary-btn">
+                    Report Issue
                   </Link>
-                  <Link to="/login" className="btn btn-outline">
-                    Login
+                  <Link to="/complaints" className="btn outline-btn">
+                    Dashboard
                   </Link>
                 </>
               )}
             </div>
           </div>
         </div>
+
+        <div className="scroll-indicator">
+          <span>Scroll to Explore</span>
+          <div className="arrow">↓</div>
+        </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="how-it-works">
-        <div className="container">
-          <h2>How CleanStreet Works</h2>
-          <p className="section-subtitle">Simple steps to make a difference in your community</p>
-          
-          <div className="steps-grid">
-            <div className="step-card">
-              <div className="step-icon">📝</div>
-              <h3>Report Issues</h3>
-              <p>Easily report civic problems with photos and location details</p>
+      {/* SECTION 2: LIVE STATISTICS */}
+      <section className="home-section stats-section">
+        <div className="section-headers">
+          <h2>Our Impact</h2>
+          <p>Real-time data empowering our city</p>
+        </div>
+
+        <div className="stats-grids">
+          <div className="stats-card">
+            <div className="icons">
+              <i class="bi bi-people-fill"></i>
             </div>
-            
-            <div className="step-card">
-              <div className="step-icon">📊</div>
-              <h3>Track Progress</h3>
-              <p>Monitor the status of reported issues and see updates in real-time</p>
+            <h3>{loading ? "..." : stats.totalUsers}+</h3>
+            <p>Active Citizens</p>
+          </div>
+          <div className="stats-card featured">
+            <div className="icons">
+              <i class="bi bi-megaphone-fill"></i>
             </div>
-            
-            <div className="step-card">
-              <div className="step-icon">👥</div>
-              <h3>Community Impact</h3>
-              <p>Vote and comment on issues to help prioritize community needs</p>
+            <h3>{loading ? "..." : stats.totalIssues}+</h3>
+            <p>Issues Reported</p>
+          </div>
+          <div className="stats-card">
+            <div className="icons">
+              <i class="bi bi-geo-fill"></i>
             </div>
+            <h3>{loading ? "..." : stats.postalCodes}</h3>
+            <p>Postal Zones</p>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="cta-section">
-        <div className="container">
-          <div className="cta-content">
-            <h2>Ready to Make a Difference?</h2>
-            <p>Join thousands of citizens working together to create cleaner, safer communities.</p>
-            <Link to={user ? "/report-issue" : "/register"} className="btn btn-primary">
-              Start Reporting Issues
-            </Link>
+      {/* SECTION 3: RECENT ACTIVITY */}
+      <section className="home-section recent-section">
+        <div className="content-wrapper">
+          <h2>Recently Solved</h2>
+          <p className="subtitle">See what's happening in your neighborhood</p>
+
+          <div className="recent-list">
+            {recentlySolved.map((item) => (
+              <div key={item.id} className="recent-item">
+                <div className="status-indicator resolved">✔</div>
+                <div className="recent-info">
+                  <h4>{item.title}</h4>
+                  <span className="date">{item.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+
+        <footer className="footer">
+          <p>
+            © {new Date().getFullYear()} CleanStreet. Together for a cleaner
+            tomorrow.
+          </p>
+        </footer>
       </section>
     </div>
   );
-};
-
-export default Home;
+}

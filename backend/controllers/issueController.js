@@ -4,6 +4,7 @@ const streamifier = require("streamifier");
 const { extractPostalCode } = require("../utils/extractPostalCode");
 const { getCoordinatesFromAddress } = require("../utils/geocodingUtils");
 const User = require("../models/user");
+const Comment = require("../models/Comment");
 
 const uploadBufferToCloudinary = (
   fileBuffer,
@@ -103,7 +104,6 @@ exports.reportIssue = async (req, res) => {
       }
     } catch (geoError) {
       console.warn("Geocoding failed for address:", address, geoError.message);
-      // latitude and longitude remain null
     }
 
     console.log("REPORT ISSUE: creating DB record...");
@@ -215,14 +215,12 @@ exports.toggleVote = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Issue not found" });
 
-    const userId = req.user._id.toString(); // Ensure userId is string for comparison
+    const userId = req.user._id.toString();
     const isUpvote = type === "up";
 
-    // 1. Check if the user ID exists in the target array BEFORE filtering
     const upvotesBefore = issue.upvotes.map((u) => u.toString());
     const downvotesBefore = issue.downvotes.map((u) => u.toString());
 
-    // Check if the user is already voting on the TARGET type
     const wasAlreadyTargetVoter = isUpvote
       ? upvotesBefore.includes(userId)
       : downvotesBefore.includes(userId);
@@ -232,7 +230,7 @@ exports.toggleVote = async (req, res) => {
 
     if (!wasAlreadyTargetVoter) {
       const targetArray = isUpvote ? issue.upvotes : issue.downvotes;
-      targetArray.push(req.user._id); // Push the ObjectId back
+      targetArray.push(req.user._id);
     }
 
     await issue.save();
@@ -243,5 +241,129 @@ exports.toggleVote = async (req, res) => {
   } catch (error) {
     console.error("Vote error:", error);
     res.status(500).json({ success: false, message: "Vote failed" });
+  }
+};
+
+exports.updateIssueStatus = async (req, res) => {
+  const { issueId } = req.params;
+  const { status } = req.body;
+  const user = req.user;
+
+  if (user.role !== "admin" && user.role !== "globaladmin") {
+    return res.status(403).json({ success: false, message: "Access denied." });
+  }
+
+  const validStatuses = ["reported", "in progress", "resolved", "closed"];
+  if (!status || !validStatuses.includes(status.toLowerCase())) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid status provided." });
+  }
+
+  try {
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Issue not found." });
+    }
+
+    const isGlobal = user.role === "globaladmin";
+    const isLocalIssue =
+      normalizePostal(issue.postalCode) === normalizePostal(user.postalCode);
+
+    if (!isGlobal && !isLocalIssue) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can only update issues within your assigned postal code area.",
+      });
+    }
+
+    const update = { status: status.toLowerCase() };
+    if (update.status === "resolved" || update.status === "closed") {
+      update.resolvedAt = new Date();
+    } else {
+      update.resolvedAt = null;
+    }
+
+    const updatedIssue = await Issue.findByIdAndUpdate(
+      issueId,
+      { $set: update },
+      { new: true }
+    ).populate([
+      { path: "reportedBy", select: "name postalCode" },
+      { path: "latestComment.user", select: "name" },
+    ]);
+
+    res.status(200).json({ success: true, issue: updatedIssue });
+  } catch (error) {
+    console.error("Update status error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during status update." });
+  }
+};
+
+exports.getAllIssuesPublicSafe = async (req, res) => {
+  try {
+    const issues = await Issue.find()
+      .populate([
+        { path: "reportedBy", select: "name postalCode" },
+        { path: "latestComment.user", select: "name" },
+      ])
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      issues,
+    });
+  } catch (error) {
+    console.error("Public issues error:", error);
+    res.status(500).json({ success: false, message: "Failed to load issues" });
+  }
+};
+
+exports.deleteIssue = async (req, res) => {
+  const { issueId } = req.params;
+  const user = req.user;
+
+  if (user.role !== "admin" && user.role !== "globaladmin") {
+    return res.status(403).json({ success: false, message: "Access denied." });
+  }
+
+  try {
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Issue not found." });
+    }
+
+    const isGlobal = user.role === "globaladmin";
+    const isLocalIssue =
+      normalizePostal(issue.postalCode) === normalizePostal(user.postalCode);
+
+    if (!isGlobal && !isLocalIssue) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can only delete issues within your assigned postal code area.",
+      });
+    }
+
+    await Comment.deleteMany({ issueId });
+
+    await Issue.deleteOne({ _id: issueId });
+
+    res.status(200).json({
+      success: true,
+      message: "Issue and associated data deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete issue error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during issue deletion." });
   }
 };

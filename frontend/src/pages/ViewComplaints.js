@@ -74,7 +74,7 @@ const ViewComplaints = () => {
   };
 
   const fetchComments = async (issueId, pageNum = 1) => {
-    if (loading) return; // Avoid multiple triggers
+    if (loading) return;
 
     try {
       setLoading(true);
@@ -133,16 +133,13 @@ const ViewComplaints = () => {
 
         setMyAreaReports(myArea);
         setOtherReports(others);
-
-        // Map all comments for local state cache (using commentsCount would be better)
         const map = {};
         [...myArea, ...others].forEach((issue) => {
           const id = issue._id || issue.id;
-          map[id] = issue.comments || []; // Still using old comments array for count display on cards
+          map[id] = issue.comments || [];
         });
         setCommentsLocal(map);
       } else {
-        // Fallback logic if backend doesn't filter/split
         const issues = res.data.issues || res.data || [];
         const my = [];
         const other = [];
@@ -180,7 +177,6 @@ const ViewComplaints = () => {
     let filtered = [...reports];
     const priorityOrder = { high: 1, medium: 2, low: 3, undefined: 4 };
 
-    // Define the desired status order for sorting
     const statusOrder = {
       Reported: 1,
       "In Progress": 2,
@@ -204,7 +200,6 @@ const ViewComplaints = () => {
     } else if (sortBy === "newest") {
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sortBy === "comments") {
-      // Correctly sort by the commentsCount from the Issue model
       filtered.sort((a, b) => (b.commentsCount || 0) - (a.commentsCount || 0));
     } else if (sortBy === "status") {
       const normalizeStatus = (status) =>
@@ -311,9 +306,9 @@ const ViewComplaints = () => {
 
         {/* Actions */}
         <div className="complaint-actions">
-          <div className="vote-buttons">
+          <div className="votes-buttons">
             <button
-              className="vote-btn"
+              className="votes-btn"
               title="Upvote"
               onClick={() => handleVote(id, "up")}
               style={
@@ -325,7 +320,7 @@ const ViewComplaints = () => {
               <i className="bi bi-hand-thumbs-up" /> {upvotes}
             </button>
             <button
-              className="vote-btn"
+              className="votes-btn"
               title="Downvote"
               onClick={() => handleVote(id, "down")}
               style={hasDownvoted ? { background: "#d94f4f" } : {}}
@@ -339,11 +334,7 @@ const ViewComplaints = () => {
             onClick={() => openComments(complaint)}
           >
             <i className="bi bi-chat-left-text" /> Comments (
-            {
-              // Use commentsCount from the Issue model for display
-              complaint.commentsCount || 0
-            }
-            )
+            {complaint.commentsCount || 0})
           </button>
 
           <button
@@ -437,24 +428,18 @@ const ViewComplaints = () => {
       );
 
       if (res.data?.success) {
-        // 1) Prepend the new populated comment to the modal comments list
         if (res.data.comment) {
           setComments((prev) => [res.data.comment, ...(prev || [])]);
         }
 
-        // 2) Update commentsLocal cache (so card comment counts/preview can use it)
         setCommentsLocal((prev) => ({
           ...(prev || {}),
           [issueId]: [res.data.comment, ...(prev?.[issueId] || [])],
         }));
 
-        // 3) Update the single issue in the lists (myAreaReports/otherReports)
-        // use the issue returned by server if present; fallback to lightweight local increment
         if (res.data.issue) {
-          // update the actual issue object returned from backend
           updateIssueInState(res.data.issue);
         } else {
-          // fallback: increment commentsCount locally to avoid refetch
           setMyAreaReports((prev) =>
             prev.map((i) =>
               (i._id || i.id) === issueId
@@ -471,7 +456,6 @@ const ViewComplaints = () => {
           );
         }
 
-        // clear input and keep modal open — no full reload/fetch
         setNewComment("");
       } else {
         console.warn("Unexpected add-comment response:", res.data);
@@ -484,7 +468,6 @@ const ViewComplaints = () => {
     }
   };
   const handleDeleteComment = async (issueId, commentId) => {
-    // Confirm before deleting
     const confirmResult = await Swal.fire({
       title: "Are you sure?",
       text: "This comment will be permanently deleted.",
@@ -531,7 +514,6 @@ const ViewComplaints = () => {
           )
         );
 
-        // 🎉 Sweet success message
         Swal.fire({
           title: "Deleted!",
           text: "Your comment has been deleted successfully.",
@@ -567,7 +549,6 @@ const ViewComplaints = () => {
     }
   };
 
-  // --- Modal and image navigation helpers ---
   const openDetails = (complaint) => {
     setSelectedComplaint(complaint);
     setModalImageIndex(0);
@@ -582,17 +563,16 @@ const ViewComplaints = () => {
 
   const openComments = (complaint) => {
     setSelectedComplaintForComments(complaint);
-    // Use the issue's ID for fetching comments
     fetchComments(complaint._id || complaint.id, 1);
-    setPage(1); // Reset page when opening
+    setPage(1);
     document.body.classList.add("modal-open");
   };
   const closeCommentsModal = () => {
     setSelectedComplaintForComments(null);
     setNewComment("");
-    setComments([]); // Clear comments when closing
-    setPage(1); // Reset page
-    setTotalPages(1); // Reset totalPages
+    setComments([]);
+    setPage(1);
+    setTotalPages(1);
     document.body.classList.remove("modal-open");
   };
 
@@ -609,7 +589,6 @@ const ViewComplaints = () => {
     setModalImageIndex((i) => (i + 1) % selectedComplaint.imageUrls.length);
   };
 
-  // Map link helper (using the corrected syntax)
   const openLocationInMaps = (complaint) => {
     const lat = complaint.latitude || complaint.lat;
     const lon = complaint.longitude || complaint.lon;
@@ -866,7 +845,6 @@ const ViewComplaints = () => {
               <div className="comment-actions">
                 <button
                   className="post-btn"
-                  // FIX: Pass the issue ID to the handler
                   onClick={() =>
                     handleAddComment(
                       selectedComplaintForComments._id ||
@@ -917,7 +895,6 @@ const ViewComplaints = () => {
                             </span>
                           )}
 
-                          {/* 🗑️ Delete button visible only to comment author */}
                           {isAuthor && (
                             <button
                               onClick={() =>

@@ -74,10 +74,11 @@ exports.deleteComment = async (req, res) => {
         .json({ success: false, message: "Comment not found" });
     }
 
-    if (
-      String(comment.userId) !== String(userId) &&
-      req.user?.role !== "admin"
-    ) {
+    const isCommentAuthor = String(comment.userId) === String(userId);
+    const isAdmin =
+      req.user?.role === "admin" || req.user?.role === "globaladmin";
+
+    if (!isCommentAuthor && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "Not authorized to delete this comment",
