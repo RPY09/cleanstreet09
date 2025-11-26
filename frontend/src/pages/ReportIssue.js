@@ -17,7 +17,6 @@ import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
 import { toLonLat } from "ol/proj";
 
-// Utility Imports (uses backend proxy endpoints)
 import { reverseGeocode, getInitialCenterForAddress } from "../utils/MapUtils";
 
 const API_URL = process.env.REACT_APP_API_URL
@@ -66,7 +65,6 @@ const ReportIssue = () => {
     { value: "high", label: "High", icon: "bi-arrow-up-circle" },
   ];
 
-  // Initialize map: calculate center from user's stored address (if any) else default
   useEffect(() => {
     let mounted = true;
     const markerStyle = new Style({
@@ -108,12 +106,10 @@ const ReportIssue = () => {
         });
         markerSource.addFeature(marker);
 
-        // attempt to reverse geocode (backend proxy)
         try {
           const addressString = await reverseGeocode(coords[0], coords[1]);
           setFormData((prev) => ({ ...prev, address: addressString }));
         } catch (e) {
-          // reverseGeocode returns fallback string on error already; still handle errors gracefully
           console.error("Reverse geocode failed:", e);
           setFormData((prev) => ({
             ...prev,
@@ -132,10 +128,9 @@ const ReportIssue = () => {
       if (map) {
         map.setTarget(undefined);
       }
-      // revoke any created object URLs to avoid leaks
+
       imagePreviews.forEach((url) => URL.revokeObjectURL(url));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markerSource, user?.location]);
 
   const handleChange = (e) => {
@@ -145,21 +140,17 @@ const ReportIssue = () => {
     }));
   };
 
-  // Handle up to 3 images
   const handleImageChange = (e) => {
     const filesSelected = Array.from(e.target.files).slice(0, 3);
 
-    // revoke previous previews
     imagePreviews.forEach((url) => URL.revokeObjectURL(url));
 
     setImageFiles(filesSelected);
     setImagePreviews(filesSelected.map((file) => URL.createObjectURL(file)));
 
-    // reset input value so same file can be reselected later if removed
     e.target.value = "";
   };
 
-  // Remove a selected image by index
   const removeImage = (index) => {
     const urlToRevoke = imagePreviews[index];
     if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
@@ -174,7 +165,6 @@ const ReportIssue = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation with SweetAlert2
     if (!selectedLocation) {
       Swal.fire({
         icon: "warning",
@@ -232,7 +222,7 @@ const ReportIssue = () => {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
-        timeout: 120000, // 2 minutes
+        timeout: 120000,
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round(
@@ -254,7 +244,6 @@ const ReportIssue = () => {
         timerProgressBar: true,
       });
 
-      // Reset form and images, revoke previews
       setFormData({
         title: "",
         issueType: "",
@@ -269,7 +258,6 @@ const ReportIssue = () => {
       setSelectedLocation(null);
       markerSource.clear();
       setUploadProgress(null);
-      // Optionally clear marker on map (already cleared above)
     } catch (err) {
       console.error("Issue submit error:", err, {
         response: err?.response?.data,
@@ -308,7 +296,7 @@ const ReportIssue = () => {
 
   return (
     <div className="report-issue-page">
-      <div className="container">
+      <div className="containers">
         <div className="report-header">
           <h1>
             <i className="bi bi-megaphone"></i> Report Civic Issue

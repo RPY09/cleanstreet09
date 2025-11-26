@@ -30,14 +30,12 @@ body {
 .landing-container {
   width: 100%;
   overflow-x: hidden;
-  /* Removed scroll-snap logic for smooth scrolling */
 }
 .icons {
   color: var(--col-sage);
   font-size: 3rem;
 }
 
-/* Make every section at least the size of the window */
 .home-section {
   min-height: 100vh;
   width: 100%;
@@ -50,9 +48,6 @@ body {
   transition: background 0.3s ease;
 }
 
-/* --------------------------------------
-     3. HERO SECTION
-  -------------------------------------- */
 .hero {
   position: relative;
   display: flex;
@@ -67,7 +62,7 @@ body {
   position: absolute;
   inset: 0;
   background: url("../assets/cleansteerbg.png") center/cover no-repeat;
-  opacity: 0.3; /* Only background becomes transparent */
+  opacity: 0.3;
   z-index: 0;
 }
 
@@ -148,7 +143,7 @@ body {
 
 .hero-left .brief {
   font-size: 1.1rem;
-  color: #a8bfae; /* Desaturated sage */
+  color: #a8bfae;
   margin-bottom: 2.5rem;
   line-height: 1.6;
   -webkit-animation: tracking-in-expand-fwd-bottom 0.8s
@@ -287,7 +282,7 @@ body {
   }
 }
 
-.stats-section {
+.stat-section {
   background: linear-gradient(
     180deg,
     var(--col-darkest) 0%,
@@ -310,16 +305,15 @@ body {
   color: var(--col-sage);
 }
 
-.stats-grids {
+.stat-grids {
   display: flex;
   gap: 2.5rem;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-/* Glassmorphism Cards */
 .stats-card {
-  background: rgba(22, 56, 50, 0.6); /* --col-medium-dark with opacity */
+  background: rgba(22, 56, 50, 0.6);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(142, 182, 155, 0.1);
   padding: 3rem 2rem;
@@ -332,7 +326,7 @@ body {
 
 .stats-card:hover {
   transform: translateY(-10px);
-  background: rgba(35, 83, 71, 0.7); /* --col-medium */
+  background: rgba(35, 83, 71, 0.7);
   border-color: var(--col-sage);
 }
 
@@ -365,11 +359,7 @@ body {
   margin-bottom: 10px;
 }
 
-/* --------------------------------------
-     5. RECENT SECTION & FOOTER
-  -------------------------------------- */
 .recent-section {
-  /* Using the lighter end of the palette for contrast */
   background: var(--col-mint);
   color: var(--col-darkest);
   justify-content: space-between;
@@ -407,7 +397,7 @@ body {
   display: flex;
   align-items: center;
   padding: 1.5rem;
-  background: #ffffff; /* Pure white for clean look on Mint bg */
+  background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(5, 31, 32, 0.05);
   border-left: 6px solid var(--col-medium);
@@ -455,9 +445,6 @@ body {
   margin-top: auto;
 }
 
-/* --------------------------------------
-     6. RESPONSIVE
-  -------------------------------------- */
 @media (max-width: 960px) {
   .hero-content {
     flex-direction: column-reverse;
@@ -472,7 +459,7 @@ body {
     justify-content: center;
   }
 
-  .stats-grid {
+  .stat-grid {
     flex-direction: column;
     align-items: center;
   }

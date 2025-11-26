@@ -46,7 +46,7 @@ body {
   text-align: center;
 }
 
-.btn-primary {
+/* .btn-primary {
   background: #28a745;
   color: white;
 }
@@ -64,7 +64,7 @@ body {
 .btn-secondary:hover {
   background: #0056b3;
   transform: translateY(-1px);
-}
+} */
 
 .btn-outline {
   background: transparent;

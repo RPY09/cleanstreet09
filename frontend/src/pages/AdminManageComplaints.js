@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -21,6 +21,7 @@ const formatDistanceToNow = (date) => {
 };
 
 const BACKEND = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const PAGE_SIZE = 20;
 
 const AdminManageComplaints = () => {
   const { user } = useAuth();
@@ -38,16 +39,19 @@ const AdminManageComplaints = () => {
   const [newComment, setNewComment] = useState("");
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingComplaints, setLoadingComplaints] = useState(false);
   const userId = user?._id || user?.id;
   const [comments, setComments] = useState([]);
-  const [page, setPage] = useState(1);
+  const [pageComments, setPageComments] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
 
-  // Status options for the admin dropdown
+  const [pageComplaints, setPageComplaints] = useState(1);
+  const [hasMoreComplaints, setHasMoreComplaints] = useState(true);
+  const fetchedIdsRef = useRef(new Set());
+
   const statusOptions = ["reported", "in progress", "resolved", "closed"];
 
-  // Utility to find and update issue in all relevant state arrays
   const updateIssueInState = (updatedIssue) => {
     if (!updatedIssue) return;
 
@@ -97,6 +101,7 @@ const AdminManageComplaints = () => {
     ) {
       setSelectedComplaintForComments(null);
     }
+    fetchedIdsRef.current.delete(issueId);
   };
 
   const fetchComments = async (issueId, pageNum = 1) => {
@@ -113,8 +118,9 @@ const AdminManageComplaints = () => {
       if (pageNum === 1) setComments(res.data.comments);
       else setComments((prev) => [...prev, ...res.data.comments]);
 
-      setTotalPages(res.data.totalPages);
-      setHasMore(pageNum < res.data.totalPages);
+      setTotalPages(res.data.totalPages || 1);
+      setHasMoreComments(pageNum < (res.data.totalPages || 1));
+      setPageComments(pageNum);
     } catch (err) {
       console.error("Error loading comments:", err);
     } finally {
@@ -125,15 +131,16 @@ const AdminManageComplaints = () => {
   useEffect(() => {
     const handleScroll = () => {
       const modalBox = document.querySelector(".comments-list");
-      if (!modalBox || loading || !hasMore) return;
+      if (!modalBox || loading || !hasMoreComments) return;
 
       const { scrollTop, scrollHeight, clientHeight } = modalBox;
       if (scrollTop + clientHeight >= scrollHeight - 10) {
-        setPage((prev) => {
-          const next = prev + 1;
-          fetchComments(selectedComplaintForComments._id, next);
-          return next;
-        });
+        const next = pageComments + 1;
+        fetchComments(
+          selectedComplaintForComments._id || selectedComplaintForComments.id,
+          next
+        );
+        setPageComments(next);
       }
     };
 
@@ -143,63 +150,128 @@ const AdminManageComplaints = () => {
     return () => {
       if (modalBox) modalBox.removeEventListener("scroll", handleScroll);
     };
-  }, [loading, hasMore, selectedComplaintForComments]);
+  }, [loading, hasMoreComments, selectedComplaintForComments, pageComments]);
 
-  const fetchComplaints = async () => {
-    setLoading(true);
-
+  const fetchComplaints = async (page = 1, { reset = false } = {}) => {
+    if (loadingComplaints) return;
     try {
+      setLoadingComplaints(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${BACKEND}/api/issues`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${BACKEND}/api/issues?page=${page}&limit=${PAGE_SIZE}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const hasServerPagination = typeof res.data.totalPages !== "undefined";
+      let myArea = [];
+      let others = [];
 
       if (res.data?.success) {
-        const myArea = res.data.localIssues || [];
-        const others = res.data.otherIssues || [];
-
-        setMyAreaReports(myArea);
-        setOtherReports(others);
-
-        const map = {};
-        [...myArea, ...others].forEach((issue) => {
-          const id = issue._id || issue.id;
-          map[id] = issue.comments || [];
-        });
-        setCommentsLocal(map);
+        myArea = res.data.localIssues || [];
+        others = res.data.otherIssues || [];
       } else {
         const issues = res.data.issues || res.data || [];
-        const my = [];
-        const other = [];
         const userPostal = (user?.postalCode || "").toString().trim();
-
         issues.forEach((issue) => {
           const ip = (issue.postalCode || "").toString().trim();
-
-          if (userPostal && ip && ip === userPostal) my.push(issue);
-          else other.push(issue);
+          if (userPostal && ip && ip === userPostal) myArea.push(issue);
+          else others.push(issue);
         });
-
-        setMyAreaReports(my);
-        setOtherReports(other);
-
-        const map = {};
-        issues.forEach((issue) => {
-          const id = issue._id || issue.id;
-          map[id] = issue.comments || [];
-        });
-        setCommentsLocal(map);
       }
+
+      const appendUnique = (currentList, incomingList) => {
+        const next = [...currentList];
+        incomingList.forEach((issue) => {
+          const id = issue._id || issue.id;
+          if (!fetchedIdsRef.current.has(id)) {
+            fetchedIdsRef.current.add(id);
+            next.push(issue);
+          }
+        });
+        return next;
+      };
+
+      if (reset) {
+        fetchedIdsRef.current = new Set();
+        myArea = myArea.filter((issue) => {
+          const id = issue._id || issue.id;
+          fetchedIdsRef.current.add(id);
+          return true;
+        });
+        others = others.filter((issue) => {
+          const id = issue._id || issue.id;
+          fetchedIdsRef.current.add(id);
+          return true;
+        });
+        setMyAreaReports(myArea);
+        setOtherReports(others);
+      } else {
+        setMyAreaReports((prev) => appendUnique(prev, myArea));
+        setOtherReports((prev) => appendUnique(prev, others));
+      }
+
+      setCommentsLocal((prev) => {
+        const map = { ...(prev || {}) };
+        [...myArea, ...others].forEach((issue) => {
+          const id = issue._id || issue.id;
+          map[id] = issue.comments || map[id] || [];
+        });
+        return map;
+      });
+
+      if (hasServerPagination) {
+        setHasMoreComplaints(page < (res.data.totalPages || 1));
+      } else {
+        const returned = myArea.length + others.length || 0;
+        setHasMoreComplaints(returned >= PAGE_SIZE);
+      }
+
+      setPageComplaints(page);
     } catch (err) {
       console.error("Error loading complaints:", err);
     } finally {
-      setLoading(false);
+      setLoadingComplaints(false);
     }
   };
 
   useEffect(() => {
-    fetchComplaints();
+    fetchComplaints(1, { reset: true });
   }, []);
+
+  useEffect(() => {
+    const container = document.querySelector(".complaints-scroll-container");
+    if (!container) return;
+    let ticking = false;
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const { scrollTop, clientHeight, scrollHeight } = container;
+        if (
+          scrollTop + clientHeight >= scrollHeight - 150 &&
+          !loadingComplaints &&
+          hasMoreComplaints
+        ) {
+          const next = pageComplaints + 1;
+          fetchComplaints(next);
+        }
+        ticking = false;
+      });
+    };
+
+    container.addEventListener("scroll", onScroll);
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [pageComplaints, loadingComplaints, hasMoreComplaints]);
+
+  useEffect(() => {
+    setMyAreaReports([]);
+    setOtherReports([]);
+    fetchedIdsRef.current = new Set();
+    setHasMoreComplaints(true);
+    setPageComplaints(1);
+    fetchComplaints(1, { reset: true });
+  }, [filter, sortBy]);
 
   const sortAndFilterReports = (reports) => {
     let filtered = [...reports];
@@ -372,7 +444,6 @@ const AdminManageComplaints = () => {
     const displayStatus = rawStatus.replace(/\b\w/g, (c) => c.toUpperCase());
 
     const isLocalIssue = myAreaReports.some((i) => (i._id || i.id) === id);
-
     const canPerformActions = isGlobalAdmin || isLocalIssue;
 
     return (
@@ -381,38 +452,35 @@ const AdminManageComplaints = () => {
         className="complaint-card"
         aria-labelledby={`title-${id}`}
       >
-        {/* Top info row */}
-        <div className="complaint-top-row">
-          <div className="badge-group">
-            <span
-              className="priority-badge"
-              style={{ background: priorityColor }}
-            >
-              {complaint.priority?.toUpperCase() || "N/A"}
-            </span>
-
-            <span className="status-badge" style={{ color: statusColor }}>
-              {displayStatus}
+        {/* Image Section */}
+        <div
+          className="card-image-wrapper"
+          onClick={() => openDetails(complaint)}
+        >
+          {/* Badges Overlay */}
+          <div className="card-badges">
+            <div className="badge-group">
+              <span className="badge" style={{ background: priorityColor }}>
+                {complaint.priority?.toUpperCase() || "N/A"}
+              </span>
+              <span className="badge" style={{ background: statusColor }}>
+                {displayStatus}
+              </span>
+            </div>
+            <span className="time-badge">
+              {formatDistanceToNow(new Date(complaint.createdAt))}
             </span>
           </div>
-          <span className="report-time">
-            {formatDistanceToNow(new Date(complaint.createdAt), {
-              addSuffix: true,
-            })}
-          </span>
-        </div>
 
-        {/* Image */}
-        <img
-          src={
-            (complaint.imageUrls && complaint.imageUrls[0]) ||
-            "/placeholder.jpg"
-          }
-          alt={complaint.title}
-          className="complaint-image"
-          onClick={() => openDetails(complaint)}
-          style={{ cursor: "pointer" }}
-        />
+          <img
+            src={
+              (complaint.imageUrls && complaint.imageUrls[0]) ||
+              "/placeholder.jpg"
+            }
+            alt={complaint.title}
+            className="complaint-image"
+          />
+        </div>
 
         {/* Content */}
         <div className="complaint-content">
@@ -424,16 +492,17 @@ const AdminManageComplaints = () => {
           </p>
         </div>
 
+        {/* Footer Actions */}
         <div
           className={`complaint-actions ${
-            canPerformActions ? "admin-card-controls" : ""
+            canPerformActions ? "admin-card-controls" : "user-card-controls"
           }`}
         >
           {canPerformActions ? (
             <>
               <div className="status-control">
                 <select
-                  className="status-dropdown"
+                  className="btn-status-select"
                   value={rawStatus}
                   onChange={(e) => handleUpdateStatus(id, e.target.value)}
                 >
@@ -446,15 +515,24 @@ const AdminManageComplaints = () => {
               </div>
 
               <button
-                className="comment-btn"
+                className="action-btn btn-comment"
                 onClick={() => openComments(complaint)}
+                title="Comments"
               >
-                <i className="bi bi-chat-left-text" /> Comments (
-                {complaint.commentsCount || 0})
+                <i className="bi bi-chat-left-text" />{" "}
+                {complaint.commentsCount || 0}
               </button>
 
               <button
-                className="delete-issue-card-btn"
+                className="action-btn btn-view"
+                onClick={() => openDetails(complaint)}
+                title="View Details"
+              >
+                <i className="bi bi-eye"></i>
+              </button>
+
+              <button
+                className="action-btn btn-delete"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeleteIssue(id);
@@ -463,105 +541,39 @@ const AdminManageComplaints = () => {
               >
                 <i className="bi bi-trash-fill"></i>
               </button>
-
-              <button
-                className="view-btn"
-                onClick={() => openDetails(complaint)}
-                title="View Details"
-              >
-                <i className="bi bi-eye"></i>
-              </button>
             </>
           ) : (
-            // REGULAR NON-ADMIN INTERFACE or LOCAL ADMIN viewing OTHER reports
             <>
-              <p className="not-actionable-message">
-                <i className="bi bi-info-circle"></i> Non-local report
-              </p>
-
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#999",
+                  fontSize: "0.8rem",
+                }}
+              >
+                <i className="bi bi-info-circle" style={{ marginRight: 5 }}></i>{" "}
+                Non-local
+              </div>
               <button
-                className="comment-btn"
+                className="action-btn btn-comment"
                 onClick={() => openComments(complaint)}
               >
-                <i className="bi bi-chat-left-text" /> Comments (
-                {complaint.commentsCount || 0})
+                <i className="bi bi-chat-left-text" />{" "}
+                {complaint.commentsCount || 0}
               </button>
 
               <button
-                className="view-btn"
+                className="action-btn btn-view"
                 onClick={() => openDetails(complaint)}
-                title="View Details"
               >
-                <i className="bi bi-eye"></i> View
+                View
               </button>
             </>
           )}
         </div>
       </article>
     );
-  };
-
-  const handleVote = async (issueId, type) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        `${BACKEND}/api/issues/${issueId}/vote/${type}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.success && res.data.issue) {
-        updateIssueInState(res.data.issue);
-        return;
-      }
-
-      const applyOptimistic = (list) =>
-        list.map((c) => {
-          if ((c._id || c.id) !== issueId) return c;
-          const isUp = type === "up";
-          const userIdStr = String(userId);
-          const up = new Set((c.upvotes || []).map(String));
-          const down = new Set((c.downvotes || []).map(String));
-
-          if (isUp) {
-            if (up.has(userIdStr)) up.delete(userIdStr);
-            else {
-              up.add(userIdStr);
-              down.delete(userIdStr);
-            }
-          } else {
-            // Downvote
-            if (down.has(userIdStr)) down.delete(userIdStr);
-            else {
-              down.add(userIdStr);
-              up.delete(userIdStr);
-            }
-          }
-          return { ...c, upvotes: Array.from(up), downvotes: Array.from(down) };
-        });
-
-      setMyAreaReports((prev) => applyOptimistic(prev));
-      setOtherReports((prev) => applyOptimistic(prev));
-
-      if (
-        selectedComplaint &&
-        (selectedComplaint._id || selectedComplaint.id) === issueId
-      ) {
-        setSelectedComplaint((prev) => applyOptimistic([prev])[0] || prev);
-      }
-      if (
-        selectedComplaintForComments &&
-        (selectedComplaintForComments._id ||
-          selectedComplaintForComments.id) === issueId
-      ) {
-        setSelectedComplaintForComments(
-          (prev) => applyOptimistic([prev])[0] || prev
-        );
-      }
-    } catch (err) {
-      console.error("Vote error:", err);
-      alert("Failed to submit vote. Make sure you're logged in and try again.");
-    }
   };
 
   const handleAddComment = async (issueId) => {
@@ -584,6 +596,7 @@ const AdminManageComplaints = () => {
           setComments((prev) => [res.data.comment, ...(prev || [])]);
         }
 
+        // Update local maps
         setCommentsLocal((prev) => ({
           ...(prev || {}),
           [issueId]: [res.data.comment, ...(prev?.[issueId] || [])],
@@ -592,6 +605,7 @@ const AdminManageComplaints = () => {
         if (res.data.issue) {
           updateIssueInState(res.data.issue);
         } else {
+          // fallback optimistic update
           setMyAreaReports((prev) =>
             prev.map((i) =>
               (i._id || i.id) === issueId
@@ -609,28 +623,22 @@ const AdminManageComplaints = () => {
         }
 
         setNewComment("");
-      } else {
-        console.warn("Unexpected add-comment response:", res.data);
-        alert("Comment posted but server response unexpected.");
       }
     } catch (err) {
-      console.error("Error posting comment:", err, err.response?.data);
-      const serverMessage = err.response?.data?.message || err.message;
-      alert("Failed to post comment: " + serverMessage);
+      console.error("Error posting comment:", err);
+      alert("Failed to post comment.");
     }
   };
+
   const handleDeleteComment = async (issueId, commentId) => {
     const confirmResult = await Swal.fire({
-      title: "Are you sure?",
-      text: "This comment will be permanently deleted.",
+      title: "Delete Comment?",
+      text: "This cannot be undone.",
       icon: "warning",
       showCancelButton: true,
-      background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-      color: "#1B1B1B",
       confirmButtonColor: "#005347",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-      className: "swalalerts",
+      confirmButtonText: "Yes, delete it",
     });
 
     if (!confirmResult.isConfirmed) return;
@@ -644,12 +652,7 @@ const AdminManageComplaints = () => {
 
       if (res.data?.success) {
         setComments((prev) => prev.filter((c) => c._id !== commentId));
-
-        setCommentsLocal((prev) => ({
-          ...prev,
-          [issueId]: (prev[issueId] || []).filter((c) => c._id !== commentId),
-        }));
-
+        // Update counts optimistically
         setMyAreaReports((prev) =>
           prev.map((i) =>
             (i._id || i.id) === issueId
@@ -657,7 +660,6 @@ const AdminManageComplaints = () => {
               : i
           )
         );
-
         setOtherReports((prev) =>
           prev.map((i) =>
             (i._id || i.id) === issueId
@@ -667,37 +669,15 @@ const AdminManageComplaints = () => {
         );
 
         Swal.fire({
-          title: "Deleted!",
-          text: "Your comment has been deleted successfully.",
+          title: "Deleted",
           icon: "success",
-          background: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-          color: "#1B1B1B",
-          confirmButtonColor: "#005347",
-          timer: 3000,
-          timerProgressBar: true,
-        });
-      } else {
-        Swal.fire({
-          title: "Error",
-          text: res.data?.message || "Failed to delete comment.",
-          icon: "error",
-          confirmButtonColor: "#007a60",
+          timer: 1500,
+          showConfirmButton: false,
         });
       }
     } catch (err) {
-      console.error("Error deleting comment:", err);
-      Swal.fire({
-        title: "Error!",
-        text:
-          err.response?.data?.message ||
-          "Something went wrong. Please try again.",
-        icon: "error",
-        cbackground: "linear-gradient(to bottom, #D3F1DE, #81B79D)",
-        color: "#1B1B1B",
-        confirmButtonColor: "#005347",
-        timer: 3000,
-        timerProgressBar: true,
-      });
+      console.error(err);
+      Swal.fire("Error", "Could not delete comment", "error");
     }
   };
 
@@ -717,15 +697,16 @@ const AdminManageComplaints = () => {
   const openComments = (complaint) => {
     setSelectedComplaintForComments(complaint);
     fetchComments(complaint._id || complaint.id, 1);
-    setPage(1);
+    setPageComments(1);
     document.body.classList.add("modal-open");
   };
   const closeCommentsModal = () => {
     setSelectedComplaintForComments(null);
     setNewComment("");
     setComments([]);
-    setPage(1);
+    setPageComments(1);
     setTotalPages(1);
+    setHasMoreComments(true);
     document.body.classList.remove("modal-open");
   };
 
@@ -744,132 +725,120 @@ const AdminManageComplaints = () => {
 
   // Map link helper
   const openLocationInMaps = (complaint) => {
-    const lat = complaint.latitude || complaint.lat;
-    const lon = complaint.longitude || complaint.lon;
-    let url = "";
-    if (lat && lon)
-      url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-    else {
-      const q =
-        complaint.address ||
-        complaint.location ||
-        complaint.landmark ||
-        complaint.title ||
-        "";
-      if (!q) return;
-      url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        q
-      )}`;
+    const q = complaint.address || complaint.location || complaint.title;
+    if (q) {
+      window.open(
+        `https://www.google.com/maps?q=${encodeURIComponent(q)}`,
+        "_blank"
+      );
     }
-    window.open(url, "_blank");
   };
 
   return (
     <div className="view-complaints-page">
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div className="complaints-header">
+      {/* HEADER SECTION */}
+      <div className="complaints-page-header">
+        <div className="header-titles">
           <h1>Community Reports</h1>
           <p>
             See what issues your community is reporting and show your support
           </p>
         </div>
 
-        <div
-          style={{ textAlign: "end", display: "flex", alignItems: "center" }}
-        >
-          <label>Filter by Priority: </label>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="all">All</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
+        <div className="header-controls">
+          <div className="filter-group">
+            <label>Priority</label>
+            <select
+              className="modern-select"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All Priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
 
-          <label style={{ marginLeft: 16 }}>Sort by: </label>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="priority">Priority</option>
-            <option value="newest">Newest</option>
-            <option value="comments">Most Comments</option>
-            <option value="status">Status</option>
-          </select>
+          <div className="filter-group">
+            <label>Sort By</label>
+            <select
+              className="modern-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="priority">Priority</option>
+              <option value="newest">Newest First</option>
+              <option value="comments">Most Active</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {loading && <p style={{ textAlign: "center" }}>Loading reports…</p>}
+      {loadingComplaints && (
+        <p style={{ textAlign: "center", color: "#fff" }}>Loading reports…</p>
+      )}
+      <div className="complaints-scroll-container">
+        {/* User area reports */}
+        <section aria-label="Your area reports">
+          <h2 className="section-title">Reports in your area</h2>
 
-      {/* User area reports */}
-      <section aria-label="Your area reports">
-        <h2
-          style={{
-            color: "var(--g-pale)",
-            display: "flex",
-            justifyContent: "center",
-            textTransform: "capitalize",
-          }}
-        >
-          Reports in your area
-        </h2>
+          {sortAndFilterReports(myAreaReports).length === 0 ? (
+            <p style={{ textAlign: "center", color: "var(--g-accent)" }}>
+              No reports found in your postal code matching current filters.
+            </p>
+          ) : (
+            <div className="complaints-grid">
+              {sortAndFilterReports(myAreaReports).map(renderComplaintCard)}
+            </div>
+          )}
+        </section>
 
-        {sortAndFilterReports(myAreaReports).length === 0 ? (
-          <p style={{ color: "var(--g-accent)", marginLeft: "1.5rem" }}>
-            No reports found in your postal code matching current filters.
-          </p>
-        ) : (
-          <div className="complaints-grid" style={{ marginTop: 8 }}>
-            {sortAndFilterReports(myAreaReports).map(renderComplaintCard)}
-          </div>
-        )}
-      </section>
+        {/* Other reports */}
+        <section aria-label="Other reports" style={{ marginTop: "4rem" }}>
+          <h2 className="section-title">Other reports</h2>
 
-      <hr className="section-divider" style={{ margin: "28px 1.5rem" }} />
-
-      {/* Other reports */}
-      <section aria-label="Other reports">
-        <h2
-          style={{
-            color: "var(--g-pale)",
-            display: "flex",
-            justifyContent: "center",
-            textTransform: "capitalize",
-          }}
-        >
-          Other reports
-        </h2>
-        <div className="complaints-grid" style={{ marginTop: 8 }}>
           {sortAndFilterReports(otherReports).length === 0 ? (
-            <p style={{ color: "var(--g-accent)", marginLeft: "1.5rem" }}>
+            <p style={{ textAlign: "center", color: "var(--g-accent)" }}>
               No other reports found matching current filters.
             </p>
           ) : (
-            <div className="complaints-grid" style={{ marginTop: 8 }}>
+            <div className="complaints-grid">
               {sortAndFilterReports(otherReports).map(renderComplaintCard)}
             </div>
           )}
-        </div>
-      </section>
+        </section>
+      </div>
 
+      {/* --- DETAIL MODAL --- */}
       {selectedComplaint && (
-        <div
-          className="modal-overlay"
-          onClick={closeDetailsModal}
-          role="dialog"
-          aria-modal="true"
-        >
+        <div className="modal-overlay" onClick={closeDetailsModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>
-              <i className="bi bi-arrow-bar-right"></i>
-              {selectedComplaint.title}
-            </h2>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <h2>{selectedComplaint.title}</h2>
+              <button
+                className="action-btn"
+                onClick={closeDetailsModal}
+                style={{ background: "#eee" }}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
 
-            <p className="modal-description">{selectedComplaint.description}</p>
-
-            <div style={{ position: "relative", marginBottom: 12 }}>
+            <div className="modal-image-container">
               {selectedComplaint.imageUrls &&
               selectedComplaint.imageUrls.length > 0 ? (
                 <>
                   <img
                     src={selectedComplaint.imageUrls[modalImageIndex]}
-                    alt={`Image ${modalImageIndex + 1}`}
+                    alt="Complaint Proof"
                     className="modal-image"
                     onClick={() =>
                       window.open(
@@ -877,149 +846,191 @@ const AdminManageComplaints = () => {
                         "_blank"
                       )
                     }
+                    style={{ cursor: "pointer" }}
+                    title="Click to open full image in new tab"
                   />
+
                   {selectedComplaint.imageUrls.length > 1 && (
-                    <>
-                      <button
-                        aria-label="Previous image"
-                        onClick={prevImage}
-                        className="gallery-arrow left"
-                      >
-                        <i className="bi bi-chevron-left" />
-                      </button>
-                      <button
-                        aria-label="Next image"
-                        onClick={nextImage}
-                        className="gallery-arrow right"
-                      >
-                        <i className="bi bi-chevron-right" />
-                      </button>
-                    </>
-                  )}
-                  {selectedComplaint.imageUrls.length > 1 && (
-                    <div className="imagecount">
-                      <i className="bi bi-images"></i> {modalImageIndex + 1} /{" "}
+                    <div
+                      onClick={window.open}
+                      style={{
+                        position: "absolute",
+                        bottom: 10,
+                        background: "rgba(0,0,0,0.5)",
+                        color: "white",
+                        padding: "4px 8px",
+                        borderRadius: 10,
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      {modalImageIndex + 1} /{" "}
                       {selectedComplaint.imageUrls.length}
                     </div>
                   )}
+                  {selectedComplaint.imageUrls.length > 1 && (
+                    <>
+                      <button
+                        onClick={prevImage}
+                        style={{
+                          position: "absolute",
+                          left: 10,
+                          background: "rgba(255,255,255,0.8)",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: 36,
+                          height: 36,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <i className="bi bi-chevron-left"></i>
+                      </button>
+                      <button
+                        onClick={nextImage}
+                        style={{
+                          position: "absolute",
+                          right: 10,
+                          background: "rgba(255,255,255,0.8)",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: 36,
+                          height: 36,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <i className="bi bi-chevron-right"></i>
+                      </button>
+                    </>
+                  )}
                 </>
               ) : (
-                <div
-                  className="no-image"
-                  style={{ height: 240, borderRadius: 8 }}
-                >
-                  <span>No images available</span>
-                </div>
+                <p style={{ color: "#888" }}>No images provided</p>
               )}
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <p
-                className="modal-location"
-                onClick={() => openLocationInMaps(selectedComplaint)}
-              >
-                <i className="bi bi-geo-alt-fill" />{" "}
-                {selectedComplaint.address ||
-                  selectedComplaint.location ||
-                  "Location not set"}
-              </p>
-              {selectedComplaint.landmark && (
-                <p className="modal-landmark">
-                  <i className="bi bi-signpost-2" style={{ marginRight: 8 }} />
-                  {selectedComplaint.landmark}
-                </p>
-              )}
-            </div>
-
-            <div
-              className="comment-actions"
-              style={{
-                justifyContent: "space-between",
-                gap: "1rem",
-                marginTop: "1.5rem",
-              }}
-            >
-              <p className="reported-by">
-                <i class="bi bi-person">
-                   
-                  {selectedComplaint.reportedBy?.name
-                    ? selectedComplaint.reportedBy.name
-                    : "Unknown User"}
-                </i>
-              </p>
+            <div className="modal-info-row">
               <div
+                className="info-item"
+                onClick={() => openLocationInMaps(selectedComplaint)}
+                title={selectedComplaint.address || selectedComplaint.location}
                 style={{
-                  justifyContent: "space-between",
-                  display: "flex",
-                  gap: "1rem",
+                  cursor: "pointer",
+                  alignItems: "flex-start",
+                  maxWidth: "90%",
                 }}
               >
-                <button
-                  className="view-btn"
-                  onClick={() => {
-                    closeDetailsModal();
-                    openComments(selectedComplaint);
+                <i
+                  className="bi bi-geo-alt-fill"
+                  style={{ marginTop: "4px", flexShrink: 0 }}
+                />
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
                   }}
-                  style={{ background: "#007a60" }}
                 >
-                  <i className="bi bi-chat-left-text" /> View/Add Comments
-                </button>
-                <button className="close-btn" onClick={closeDetailsModal}>
-                  ✖
-                </button>
+                  <span
+                    style={{
+                      display: "block",
+                      maxWidth: "600px",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {selectedComplaint.address ||
+                      selectedComplaint.location ||
+                      "Location not set"}
+                  </span>
+
+                  {/* Landmark */}
+                  {selectedComplaint.landmark && (
+                    <span
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "#888",
+                        marginTop: "2px",
+                      }}
+                    >
+                      Landmark: {selectedComplaint.landmark}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              <div className="info-item" style={{ minWidth: "150px" }}>
+                <i className="bi bi-person-fill" style={{ flexShrink: 0 }} />
+                {selectedComplaint.reportedBy?.name ||
+                  selectedComplaint.reportedBy?.username ||
+                  "Anonymous User"}
+              </div>
+            </div>
+
+            <p style={{ lineHeight: 1.6, color: "#444", marginBottom: "2rem" }}>
+              {selectedComplaint.description}
+            </p>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="action-btn btn-view"
+                onClick={() => {
+                  closeDetailsModal();
+                  openComments(selectedComplaint);
+                }}
+              >
+                <i className="bi bi-chat-left-text"></i> View Discussion
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* --- COMMENTS MODAL --- */}
       {selectedComplaintForComments && (
-        <div
-          className="modal-overlay"
-          onClick={closeCommentsModal}
-          role="dialog"
-          aria-modal="true"
-        >
+        <div className="modal-overlay" onClick={closeCommentsModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>
-              Comments for: {selectedComplaintForComments.title}
-            </h2>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <h2>Discussion: {selectedComplaintForComments.title}</h2>
+              <button
+                className="action-btn"
+                onClick={closeCommentsModal}
+                style={{ background: "#eee" }}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
 
-            <div className="comments-section" style={{ background: "#dff2e9" }}>
-              <h3>Add Comment</h3>
-              <textarea
-                className="comment-input"
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-              <div className="comment-actions">
+            <div className="comments-section">
+              <div className="comment-input-area">
+                <textarea
+                  className="comment-input"
+                  rows="2"
+                  placeholder="Write a comment..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                />
                 <button
-                  className="post-btn"
+                  className="action-btn btn-view"
                   onClick={() =>
                     handleAddComment(
                       selectedComplaintForComments._id ||
                         selectedComplaintForComments.id
                     )
                   }
+                  style={{ height: "fit-content", alignSelf: "center" }}
                 >
-                  <i className="bi bi-send" /> Post Comment
-                </button>
-                <button className="close-btn" onClick={closeCommentsModal}>
-                  Close
+                  Post
                 </button>
               </div>
 
-              <h3
-                style={{
-                  marginTop: "1.5rem",
-                  borderTop: "1px solid #cbe7dc",
-                  paddingTop: "1rem",
-                }}
-              >
-                All Comments
-              </h3>
-              <div className="comments-list" style={{ maxHeight: "300px" }}>
+              <div className="comments-list">
                 {comments.length > 0 ? (
                   comments.map((c, idx) => {
                     const username =
@@ -1027,57 +1038,56 @@ const AdminManageComplaints = () => {
                         typeof c.userId === "object" &&
                         (c.userId.name || c.userId.username)) ||
                       "User";
-
                     const isAuthor =
                       c.userId &&
                       (typeof c.userId === "object"
                         ? c.userId._id
                         : c.userId.toString()) === (user?._id || user?.id);
 
-                    const canDelete = isAuthor || isAdmin;
-
                     return (
                       <div key={idx} className="comment-bubble">
-                        <div className="comment-header">
-                          <strong style={{ color: "#004c3f" }}>
-                            {username}
-                          </strong>
-                          {c.createdAt && (
-                            <span className="comment-time">
-                              • {formatDistanceToNow(new Date(c.createdAt))}
-                            </span>
-                          )}
-
-                          {canDelete && (
-                            <button
-                              onClick={() =>
-                                handleDeleteComment(
-                                  selectedComplaintForComments._id ||
-                                    selectedComplaintForComments.id,
-                                  c._id
-                                )
-                              }
-                              style={{
-                                marginLeft: "auto",
-                                background: "transparent",
-                                border: "none",
-                                color: "#b22222",
-                                cursor: "pointer",
-                              }}
-                              title="Delete comment"
-                            >
-                              <i className="bi bi-trash" />
-                            </button>
-                          )}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: 5,
+                          }}
+                        >
+                          <strong>{username}</strong>
+                          <span style={{ fontSize: "0.75rem", color: "#888" }}>
+                            {formatDistanceToNow(new Date(c.createdAt))}
+                          </span>
                         </div>
-                        <p className="comment-text">{c.text}</p>
+                        <p style={{ margin: 0, color: "#333" }}>{c.text}</p>
+                        {(isAuthor || isAdmin) && (
+                          <button
+                            onClick={() =>
+                              handleDeleteComment(
+                                selectedComplaintForComments._id ||
+                                  selectedComplaintForComments.id,
+                                c._id
+                              )
+                            }
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#d33",
+                              fontSize: "0.8rem",
+                              cursor: "pointer",
+                              marginTop: 5,
+                              padding: 0,
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     );
                   })
                 ) : loading ? (
                   <p>Loading comments...</p>
                 ) : (
-                  <p>No comments yet. Be the first to start a discussion!</p>
+                  <p>No comments yet.</p>
                 )}
               </div>
             </div>

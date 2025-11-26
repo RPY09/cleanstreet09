@@ -12,11 +12,11 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
+    setOpen(false);
   };
 
   const toggleMenu = () => setOpen((s) => !s);
 
-  // Helper function to check if a path is active
   const isActive = (path) => {
     if (path === "/admin/overview") {
       return (
@@ -193,7 +193,7 @@ const Navbar = () => {
                 </>
               )}
 
-              <div className="nav-user" style={{ alignItems: "center" }}>
+              <div className="nav-user">
                 <Link
                   to="/profile"
                   className={`nav-link ${isActive("/profile") ? "active" : ""}`}
@@ -216,7 +216,6 @@ const Navbar = () => {
               </div>
             </>
           ) : (
-            // NOT LOGGED IN - SHOW LOGIN/REGISTER
             <div className="nav-auth">
               <Link
                 to="/login"

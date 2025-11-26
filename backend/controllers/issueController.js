@@ -157,7 +157,8 @@ exports.getAllIssues = async (req, res) => {
     const selection = { __v: 0 };
 
     const populationOptions = [
-      { path: "reportedBy", select: "name postalCode" },
+      // include username + name so frontend can show either
+      { path: "reportedBy", select: "name username postalCode" },
       { path: "latestComment.user", select: "name" },
     ];
 
@@ -176,15 +177,18 @@ exports.getAllIssues = async (req, res) => {
 
       otherReports = [];
     } else if (userPostalNorm) {
-      myAreaReports = await Issue.find({ postalCode: userPostalRaw });
-
+      myAreaReports = await Issue.find({ postalCode: userPostalRaw })
+        .populate(populationOptions)
+        .select(selection)
+        .sort({ createdAt: -1 });
       otherReports = await Issue.find({ postalCode: { $ne: userPostalRaw } })
         .populate(populationOptions)
+        .select(selection)
         .sort({ createdAt: -1 });
     } else {
-      // If user has no postal code, return all issues under otherReports
       let issues = await Issue.find()
         .populate(populationOptions)
+        .select(selection)
         .sort({ createdAt: -1 });
       otherReports = issues;
     }

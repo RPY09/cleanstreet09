@@ -33,7 +33,6 @@ const getCoordinatesFromPostalCode = async (postalCode, locationText) => {
     if (data.length > 0) {
       return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
     }
-
     return { lat: 17.385, lng: 78.4867 };
   } catch (err) {
     return { lat: 17.385, lng: 78.4867 };
@@ -42,7 +41,6 @@ const getCoordinatesFromPostalCode = async (postalCode, locationText) => {
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-
   const isGlobalAdmin = user?.role === "globaladmin";
 
   const [stats, setStats] = useState({
@@ -54,8 +52,8 @@ const AdminDashboard = () => {
 
   const [activities, setActivities] = useState([]);
   const [mapIssues, setMapIssues] = useState([]);
-
   const [showMap, setShowMap] = useState(false);
+
   const mapRef = useRef(null);
   const olMap = useRef(null);
   const vectorSourceRef = useRef(new VectorSource());
@@ -65,7 +63,6 @@ const AdminDashboard = () => {
 
   const fetchIssues = useCallback(async () => {
     if (!user) return;
-
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -74,7 +71,6 @@ const AdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Combine various issue arrays returned by backend
       const lists = [
         res.data?.localIssues,
         res.data?.myAreaReports,
@@ -90,14 +86,12 @@ const AdminDashboard = () => {
         all.push(...res.data);
       }
 
-      // Deduplicate
       const seen = new Set();
       const unique = [];
 
       for (const issue of all) {
         const id = issue?._id || issue?.id;
         if (!id) continue;
-
         if (!seen.has(id)) {
           seen.add(id);
           unique.push(issue);
@@ -108,7 +102,6 @@ const AdminDashboard = () => {
       let issuesToDisplay = [];
 
       if (isGlobalAdmin) {
-        // Global Admin sees ALL issues
         issuesToDisplay = unique;
       } else {
         issuesToDisplay = unique.filter(
@@ -119,7 +112,7 @@ const AdminDashboard = () => {
       const sorted = [...issuesToDisplay].sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
-      setActivities(sorted.slice(0, 3));
+      setActivities(sorted.slice(0, 4));
 
       setStats({
         totalIssues: issuesToDisplay.length,
@@ -141,10 +134,7 @@ const AdminDashboard = () => {
   }, [user, isGlobalAdmin]);
 
   useEffect(() => {
-    // Only fetch if user object is available (user logged in)
-    if (user) {
-      fetchIssues();
-    }
+    if (user) fetchIssues();
   }, [user, fetchIssues]);
 
   useEffect(() => {
@@ -152,9 +142,7 @@ const AdminDashboard = () => {
 
     const initMap = async () => {
       let coords;
-
       if (isGlobalAdmin) {
-        // Center of India for global admin (or a better global center)
         coords = { lat: 20.5937, lng: 78.9629 };
       } else {
         coords = await getCoordinatesFromPostalCode(
@@ -184,14 +172,12 @@ const AdminDashboard = () => {
       }
 
       vectorSourceRef.current.clear();
-
       const features = mapIssues
         .map((issue) => {
           const lng =
             issue.location?.lng ||
             issue.longitude ||
             issue.location?.coordinates?.[0];
-
           const lat =
             issue.location?.lat ||
             issue.latitude ||
@@ -201,7 +187,6 @@ const AdminDashboard = () => {
 
           const priority = (issue.priority || "").toLowerCase();
           let icon = CleanStreetPointer;
-
           if (priority === "high") icon = RedPointer;
           else if (priority === "medium") icon = YellowPointer;
 
@@ -218,157 +203,163 @@ const AdminDashboard = () => {
               }),
             })
           );
-
           return feature;
         })
         .filter(Boolean);
 
       vectorSourceRef.current.addFeatures(features);
-
       setTimeout(() => {
         olMap.current.updateSize();
-        olMap.current.getView().setCenter(center);
-      }, 400);
+      }, 200);
     };
 
     initMap();
-
     return () => {
       if (olMap.current) olMap.current.setTarget(null);
     };
   }, [showMap, mapIssues, user, isGlobalAdmin]);
 
   const getStatusClass = (status) => {
-    const s = (status || "").toLowerCase();
-    if (s === "resolved") return "status-resolved";
-    if (s === "reported") return "status-reported";
-    if (s === "in progress") return "status-in-progress";
-    return "";
+    const s = (status || "").toLowerCase().replace(" ", "");
+    return `status-${s}`;
   };
 
   return (
     <div className="dashboard-page">
-      <h1 className="dashboard-title">
-        {isGlobalAdmin ? "Global Admin Dashboard" : "Dashboard"}
-      </h1>
+      <header className="dashboard-header">
+        <h1 className="dashboard-title">
+          {isGlobalAdmin ? "Admin Overview" : "Community Dashboard"}
+        </h1>
+        <p className="dashboard-subtitle">
+          {isGlobalAdmin
+            ? "Monitor complaints and activities across all regions."
+            : "Track issues in your area and contribute to a cleaner community."}
+        </p>
+      </header>
 
-      <p className="dashboard-subtitle">
-        {isGlobalAdmin
-          ? "You are viewing all complaints across all areas."
-          : "See what issues your community is reporting and show your support"}
-      </p>
-
-      {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <i className="bi bi-exclamation-triangle"></i>
-          <h2>{stats.totalIssues}</h2>
-          <p>{isGlobalAdmin ? "Total Issues (All Areas)" : "Total Issues"}</p>
+      {/* Stats Grid */}
+      <div className="stats-grids">
+        <div className="stat-cards">
+          <div className="stat-icon-wrappers">
+            <i className="bi bi-grid-fill"></i>
+          </div>
+          <div className="stat-labels">
+            <i className="bi bi-files"></i> Total Issues
+          </div>
+          <div className="stat-values">{stats.totalIssues}</div>
         </div>
-
-        <div className="stat-card">
-          <i className="bi bi-clock-history"></i>
-          <h2>{stats.pending}</h2>
-          <p>Pending</p>
+        <div className="stat-cards">
+          <div className="stat-icon-wrappers">
+            <i className="bi bi-clock-history"></i>
+          </div>
+          <div className="stat-labels">
+            <i className="bi bi-clock"></i> Pending
+          </div>
+          <div className="stat-values">{stats.pending}</div>
         </div>
-
-        <div className="stat-card">
-          <i className="bi bi-hourglass-split"></i>
-          <h2>{stats.inProgress}</h2>
-          <p>In Progress</p>
+        <div className="stat-cards">
+          <div className="stat-icon-wrappers">
+            <i className="bi bi-tools"></i>
+          </div>
+          <div className="stat-labels">
+            <i className="bi bi-hourglass-split"></i> In Progress
+          </div>
+          <div className="stat-values">{stats.inProgress}</div>
         </div>
-
-        <div className="stat-card">
-          <i className="bi bi-check2-circle"></i>
-          <h2>{stats.resolved}</h2>
-          <p>Resolved</p>
+        <div className="stat-cards">
+          <div className="stat-icon-wrappers">
+            <i className="bi bi-check-circle-fill"></i>
+          </div>
+          <div className="stat-labels">
+            <i className="bi bi-check2-circle"></i> Resolved
+          </div>
+          <div className="stat-values">{stats.resolved}</div>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="activity-actions-container">
-        <div className="activity-section">
-          <h3>
-            {isGlobalAdmin
-              ? "Recent Activity (All Areas)"
-              : "Recent Activity (Your Area)"}
+      {/* Main Content Area */}
+      <div className="dashboard-content">
+        {/* Left: Recent Activity */}
+        <div className="content-section">
+          <h3 className="section-titles">
+            {isGlobalAdmin ? "Global Activity" : "Recent Reports"}
+            <i className="bi bi-activity" style={{ opacity: 0.5 }}></i>
           </h3>
 
-          <div className="activity-table">
-            {activities.length ? (
+          <div className="activity-list">
+            {activities.length > 0 ? (
               activities.map((a) => (
-                <div key={a._id} className="activity-row">
-                  <div className="activity-left">
-                    <i
-                      className={`bi ${
-                        a.status === "resolved"
-                          ? "bi-check2-circle"
-                          : a.status === "reported"
-                          ? "bi-plus-circle"
-                          : "bi-hourglass-split"
-                      }`}
-                    ></i>
-                    <div>
+                <div key={a._id} className="activity-item">
+                  <div className="activity-info">
+                    <div className="activity-icon">
+                      <i
+                        className={`bi ${
+                          a.status === "resolved"
+                            ? "bi-check-lg"
+                            : "bi-exclamation-lg"
+                        }`}
+                      ></i>
+                    </div>
+                    <div className="activity-details">
                       <h4>{a.title}</h4>
-                      <p>{new Date(a.createdAt).toLocaleString()}</p>
+                      <p>
+                        {new Date(a.createdAt).toLocaleDateString()} •{" "}
+                        {new Date(a.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
                     </div>
                   </div>
-
                   <span
-                    className={`activity-status ${getStatusClass(a.status)}`}
+                    className={`status-badge ${getStatusClass(
+                      a.status || "reported"
+                    )}`}
                   >
-                    {a.status
-                      ? a.status.charAt(0).toUpperCase() + a.status.slice(1)
-                      : "Reported"}
+                    {a.status || "Reported"}
                   </span>
                 </div>
               ))
             ) : (
-              <p className="no-activity">
-                {isGlobalAdmin
-                  ? "No activity found in the system"
-                  : "No recent activity in your area"}
-              </p>
+              <div className="no-data">No recent activity found.</div>
             )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="quick-actions">
-          <h3>Quick Actions</h3>
-
-          <Link to="/report-issue" className="btns primary">
-            <i className="bi bi-plus-lg me-2"></i> Report New Issue
-          </Link>
-
-          <Link to="/complaints" className="btns secondary">
-            <i className="bi bi-list-ul me-2"></i> View All Complaints
-          </Link>
-
-          <button className="btns secondary" onClick={() => setShowMap(true)}>
-            <i className="bi bi-geo-alt-fill me-2"></i> Issue Map
-          </button>
+        {/* Right: Quick Actions */}
+        <div className="content-section" style={{ height: "fit-content" }}>
+          <h3 className="section-titles">Quick Actions</h3>
+          <div className="actions-grid">
+            <Link to="/report-issue" className="dashboard-btn btn-primary">
+              <i className="bi bi-plus-circle-fill"></i> Report Issue
+            </Link>
+            <Link to="/complaints" className="dashboard-btn btn-secondary">
+              <i className="bi bi-list-check"></i> Manage Complaints
+            </Link>
+            <button
+              className="dashboard-btn btn-tertiary"
+              onClick={() => setShowMap(true)}
+            >
+              <i className="bi bi-map-fill"></i> View Map
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Map Modal */}
       {showMap && (
         <div className="modal-overlay" onClick={() => setShowMap(false)}>
-          <div
-            className="modal-box map-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2>
-              {isGlobalAdmin
-                ? "Reported Issues Across All Areas"
-                : "Reported Issues Map"}
-            </h2>
-
-            <div ref={mapRef} id="issueMap" className="map-container"></div>
-
-            <button className="btn close-btn" onClick={() => setShowMap(false)}>
-              <i className="bi bi-x-lg"></i> Close
-            </button>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Issue Map</h2>
+              <button
+                className="btn-close-icon"
+                onClick={() => setShowMap(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div ref={mapRef} className="map-wrapper"></div>
           </div>
         </div>
       )}

@@ -561,7 +561,7 @@ const AdminReports = () => {
                 <h5>Generate Reports</h5>
                 <div className="action-buttons">
                   <button
-                    className="action-btn"
+                    className="actionss-btn"
                     onClick={() => exportReport("json")}
                   >
                     <span className="action-icon">
@@ -570,7 +570,7 @@ const AdminReports = () => {
                     JSON Report
                   </button>
                   <button
-                    className="action-btn"
+                    className="actionss-btn"
                     onClick={() => exportReport("csv")}
                   >
                     <span className="action-icon">
@@ -578,7 +578,7 @@ const AdminReports = () => {
                     </span>
                     CSV Export
                   </button>
-                  <button className="action-btn" onClick={fetchReportsData}>
+                  <button className="actionss-btn" onClick={fetchReportsData}>
                     <span className="action-icon">
                       <i className="bi bi-arrow-clockwise"></i>
                     </span>

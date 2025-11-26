@@ -118,7 +118,7 @@ export default function Home() {
                     Report Issue
                   </Link>
                   <Link to="/complaints" className="btn outline-btn">
-                    Dashboard
+                    View Complaints
                   </Link>
                 </>
               )}
@@ -133,13 +133,13 @@ export default function Home() {
       </section>
 
       {/* SECTION 2: LIVE STATISTICS */}
-      <section className="home-section stats-section">
+      <section className="home-section stat-section">
         <div className="section-headers">
           <h2>Our Impact</h2>
           <p>Real-time data empowering our city</p>
         </div>
 
-        <div className="stats-grids">
+        <div className="stat-grids">
           <div className="stats-card">
             <div className="icons">
               <i class="bi bi-people-fill"></i>
