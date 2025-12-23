@@ -61,81 +61,83 @@ const AdminDashboard = () => {
     new VectorLayer({ source: vectorSourceRef.current })
   );
 
-  const fetchIssues = useCallback(async () => {
-    if (!user) return;
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const res = await axios.get(`${BACKEND_URL}/api/issues`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const lists = [
-        res.data?.localIssues,
-        res.data?.myAreaReports,
-        res.data?.otherIssues,
-        res.data?.otherReports,
-        res.data?.issues,
-      ];
-
-      const all = [];
-      lists.forEach((l) => Array.isArray(l) && all.push(...l));
-
-      if (all.length === 0 && Array.isArray(res.data)) {
-        all.push(...res.data);
-      }
-
-      const seen = new Set();
-      const unique = [];
-
-      for (const issue of all) {
-        const id = issue?._id || issue?.id;
-        if (!id) continue;
-        if (!seen.has(id)) {
-          seen.add(id);
-          unique.push(issue);
-        }
-      }
-
-      const userPostal = (user?.postalCode || "").trim();
-      let issuesToDisplay = [];
-
-      if (isGlobalAdmin) {
-        issuesToDisplay = unique;
-      } else {
-        issuesToDisplay = unique.filter(
-          (i) => (i.postalCode || "").toString().trim() === userPostal
-        );
-      }
-
-      const sorted = [...issuesToDisplay].sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      setActivities(sorted.slice(0, 4));
-
-      setStats({
-        totalIssues: issuesToDisplay.length,
-        pending: issuesToDisplay.filter(
-          (i) => (i.status || "").toLowerCase() === "reported"
-        ).length,
-        inProgress: issuesToDisplay.filter(
-          (i) => (i.status || "").toLowerCase() === "in progress"
-        ).length,
-        resolved: issuesToDisplay.filter(
-          (i) => (i.status || "").toLowerCase() === "resolved"
-        ).length,
-      });
-
-      setMapIssues(issuesToDisplay);
-    } catch (err) {
-      console.error("Error fetching issues:", err);
-    }
-  }, [user, isGlobalAdmin]);
-
   useEffect(() => {
-    if (user) fetchIssues();
-  }, [user, fetchIssues]);
+    if (!user) return;
+
+    const loadIssues = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_URL}/api/issues`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const lists = [
+          res.data?.localIssues,
+          res.data?.myAreaReports,
+          res.data?.otherIssues,
+          res.data?.otherReports,
+          res.data?.issues,
+        ];
+
+        const all = [];
+        lists.forEach((l) => Array.isArray(l) && all.push(...l));
+
+        if (all.length === 0 && Array.isArray(res.data)) {
+          all.push(...res.data);
+        }
+
+        const seen = new Set();
+        const unique = [];
+
+        for (const issue of all) {
+          const id = issue?._id || issue?.id;
+          if (!id) continue;
+          if (!seen.has(id)) {
+            seen.add(id);
+            unique.push(issue);
+          }
+        }
+
+        const userPostal = (user?.postalCode || "").trim();
+        let issuesToDisplay = [];
+
+        if (isGlobalAdmin) {
+          issuesToDisplay = unique;
+        } else {
+          issuesToDisplay = unique.filter(
+            (i) => (i.postalCode || "").toString().trim() === userPostal
+          );
+        }
+
+        const sorted = [...issuesToDisplay].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setActivities(sorted.slice(0, 4));
+
+        setStats({
+          totalIssues: issuesToDisplay.length,
+          pending: issuesToDisplay.filter(
+            (i) => (i.status || "").toLowerCase() === "reported"
+          ).length,
+          inProgress: issuesToDisplay.filter(
+            (i) => (i.status || "").toLowerCase() === "in progress"
+          ).length,
+          resolved: issuesToDisplay.filter(
+            (i) => (i.status || "").toLowerCase() === "resolved"
+          ).length,
+        });
+
+        setMapIssues(issuesToDisplay);
+      } catch (err) {
+        console.error("Error fetching issues:", err);
+      }
+    };
+
+    loadIssues();
+  }, [user, isGlobalAdmin]);
 
   useEffect(() => {
     if (!showMap || !user) return;

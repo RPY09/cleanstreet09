@@ -78,67 +78,65 @@ const Dashboard = () => {
     }
   }, []);
 
-  const fetchIssues = useCallback(async () => {
+  useEffect(() => {
     if (!user) return;
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+    const loadIssues = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
 
-      const res = await axios.get(`${BACKEND_URL}/api/issues`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_URL}/api/issues`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-      const lists = [
-        res.data?.localIssues,
-        res.data?.myAreaReports,
-        res.data?.otherIssues,
-        res.data?.otherReports,
-        res.data?.issues,
-      ];
+        const lists = [
+          res.data?.localIssues,
+          res.data?.myAreaReports,
+          res.data?.otherIssues,
+          res.data?.otherReports,
+          res.data?.issues,
+        ];
 
-      const flat = [];
-      lists.forEach((l) => Array.isArray(l) && flat.push(...l));
+        const flat = [];
+        lists.forEach((l) => Array.isArray(l) && flat.push(...l));
 
-      const seen = new Set();
-      const unique = [];
+        const seen = new Set();
+        const unique = [];
+        flat.forEach((i) => {
+          if (i?._id && !seen.has(i._id)) {
+            seen.add(i._id);
+            unique.push(i);
+          }
+        });
 
-      flat.forEach((issue) => {
-        const id = issue?._id;
-        if (id && !seen.has(id)) {
-          seen.add(id);
-          unique.push(issue);
-        }
-      });
+        const userPostal = String(user.postalCode || "").trim();
+        const myArea = unique.filter(
+          (i) => String(i.postalCode || "").trim() === userPostal
+        );
 
-      const userPostal = String(user.postalCode || "").trim();
+        setStats({
+          totalIssues: myArea.length,
+          pending: myArea.filter((i) => i.status === "reported").length,
+          inProgress: myArea.filter((i) => i.status === "in progress").length,
+          resolved: myArea.filter((i) => i.status === "resolved").length,
+        });
 
-      const myArea = unique.filter(
-        (i) => String(i.postalCode || "").trim() === userPostal
-      );
+        setActivities(
+          [...myArea]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 3)
+        );
 
-      setStats({
-        totalIssues: myArea.length,
-        pending: myArea.filter((i) => i.status === "reported").length,
-        inProgress: myArea.filter((i) => i.status === "in progress").length,
-        resolved: myArea.filter((i) => i.status === "resolved").length,
-      });
+        setMapIssues(unique);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      }
+    };
 
-      setActivities(
-        [...myArea]
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 3)
-      );
-
-      setMapIssues(unique);
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-    }
+    loadIssues();
   }, [user]);
-
-  useEffect(() => {
-    fetchIssues();
-  }, [fetchIssues]);
 
   // ✅ Map logic (safe)
   useEffect(() => {
