@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import axios from "axios";
 
 export const AuthContext = createContext();
-const API_URL = "http://localhost:5000/api/auth";
+const API_URL = `${process.env.REACT_APP_API_URL}/api/auth`;
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
