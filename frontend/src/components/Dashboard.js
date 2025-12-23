@@ -267,7 +267,7 @@ const vectorLayerRef = useRef(null);
           <p>Total Issues (your area)</p>
         </div>
         <div className="stat-card">
-          <i class="bi bi-clock-history"></i>
+          <i className="bi bi-clock-history"></i>
           <h2>{stats.pending}</h2>
           <p>Pending</p>
         </div>
