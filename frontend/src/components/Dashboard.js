@@ -168,12 +168,13 @@ const vectorLayerRef = useRef(null);
       const center = fromLonLat([lng, lat]);
 
       if (!olMap.current) {
-        olMap.current = new Map({
-          target: mapRef.current,
-                      // Initialize vectorLayerRef if not already created
+                              // Initialize vectorLayerRef if not already created
             if (!vectorLayerRef.current) {
               vectorLayerRef.current = new VectorLayer({ source: vectorSourceRef.current });
             }
+
+        olMap.current = new Map({
+          target: mapRef.current,
           layers: [
             new TileLayer({ source: new OSM() }),
             vectorLayerRef.current,
