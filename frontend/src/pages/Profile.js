@@ -160,9 +160,12 @@ const Profile = () => {
     }
     try {
       setSendingOtp(true);
-      const resp = await axios.post("http://localhost:5000/api/auth/send-otp", {
-        email: user.email,
-      });
+      const resp = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/auth/send-otp`,
+        {
+          email: user.email,
+        }
+      );
       if (resp?.data?.success) {
         setOtpSent(true);
         Swal.fire(swalOptions("success", "OTP Sent", "Check your email."));
@@ -183,7 +186,7 @@ const Profile = () => {
     try {
       setVerifyingOtp(true);
       const resp = await axios.post(
-        "http://localhost:5000/api/auth/verify-otp-only",
+        `${process.env.REACT_APP_API_URL}/api/auth/verify-otp-only`,
         { email: user.email, otp }
       );
       if (resp?.data?.success) {
@@ -214,7 +217,7 @@ const Profile = () => {
     try {
       setUpdatingPassword(true);
       const resp = await axios.post(
-        "http://localhost:5000/api/auth/reset-password",
+        `${process.env.REACT_APP_API_URL}/api/auth/reset-password`,
         {
           email: user.email,
           otp,

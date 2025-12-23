@@ -19,7 +19,7 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       const usersRes = await axios.get(
-        "http://localhost:5000/api/auth/public/users-count"
+        `${process.env.REACT_APP_API_URL}/api/auth/public/users-count`
       );
       const totalUsers = usersRes.data.count || 0;
 
@@ -27,7 +27,7 @@ export default function Home() {
         let totalUsers = 0;
         try {
           const res = await axios.get(
-            "http://localhost:5000/api/auth/allusers"
+            `${process.env.REACT_APP_API_URL}/api/auth/allusers`
           );
           totalUsers = Array.isArray(res.data) ? res.data.length : 0;
         } catch (err) {
@@ -35,7 +35,7 @@ export default function Home() {
         }
 
         const issuesRes = await axios.get(
-          "http://localhost:5000/api/issues/public"
+          `${process.env.REACT_APP_API_URL}/api/issues/public`
         );
 
         const all = issuesRes.data.issues || [];
@@ -51,7 +51,7 @@ export default function Home() {
 
         const totalIssues = uniqueIssues.length;
         const postalRes = await axios.get(
-          "http://localhost:5000/api/auth/public/postal-codes"
+          `${process.env.REACT_APP_API_URL}/api/auth/public/postal-codes`
         );
 
         const postalCodes = postalRes.data.postalCodes.length;

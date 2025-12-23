@@ -6,7 +6,7 @@ import Swal from "sweetalert2";
 import { reverseGeocode } from "../utils/MapUtils";
 import "./Auth.css";
 
-const API_URL = "http://localhost:5000/api/auth";
+const API_URL = `${process.env.REACT_APP_API_URL}/api/auth`;
 
 const Login = () => {
   // Use loginWithToken to update context correctly

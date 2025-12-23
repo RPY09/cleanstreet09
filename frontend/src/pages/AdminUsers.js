@@ -3,7 +3,8 @@ import Swal from "sweetalert2";
 import axios from "axios";
 import "./AdminUsers.css";
 
-const API_URL = "http://localhost:5000/api/admin/users";
+const API_URL = `${process.env.REACT_APP_API_URL}/api/admin/users`;
+
 const ITEMS_PER_PAGE = 15;
 
 export default function AdminUsers() {
