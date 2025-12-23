@@ -68,9 +68,7 @@ const Dashboard = () => {
   const mapRef = useRef(null);
   const olMap = useRef(null);
   const vectorSourceRef = useRef(new VectorSource());
-  const vectorLayerRef = useRef(
-    new VectorLayer({ source: vectorSourceRef.current })
-  );
+const vectorLayerRef = useRef(null);
 
   const fetchIssues = useCallback(async () => {
     if (!user) return;
@@ -172,6 +170,10 @@ const Dashboard = () => {
       if (!olMap.current) {
         olMap.current = new Map({
           target: mapRef.current,
+                      // Initialize vectorLayerRef if not already created
+            if (!vectorLayerRef.current) {
+              vectorLayerRef.current = new VectorLayer({ source: vectorSourceRef.current });
+            }
           layers: [
             new TileLayer({ source: new OSM() }),
             vectorLayerRef.current,
