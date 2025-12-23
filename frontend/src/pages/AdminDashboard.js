@@ -57,9 +57,7 @@ const AdminDashboard = () => {
   const mapRef = useRef(null);
   const olMap = useRef(null);
   const vectorSourceRef = useRef(new VectorSource());
-  const vectorLayerRef = useRef(
-    new VectorLayer({ source: vectorSourceRef.current })
-  );
+const vectorLayerRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -156,6 +154,10 @@ const AdminDashboard = () => {
       const center = fromLonLat([coords.lng, coords.lat]);
 
       if (!olMap.current) {
+              // Initialize vectorLayerRef if not already created
+      if (!vectorLayerRef.current) {
+        vectorLayerRef.current = new VectorLayer({ source: vectorSourceRef.current });
+      }
         olMap.current = new Map({
           target: mapRef.current,
           layers: [
