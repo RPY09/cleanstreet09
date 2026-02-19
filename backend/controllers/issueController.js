@@ -122,11 +122,16 @@ exports.reportIssue = async (req, res) => {
       longitude: longitude,
     });
 
+    const populatedIssue = await Issue.findById(newIssue._id).populate({
+      path: "reportedBy",
+      select: "name username postalCode",
+    });
+
     console.log("REPORT ISSUE: issue saved:", newIssue._id);
     res.status(201).json({
       success: true,
       message: "Issue reported successfully!",
-      issue: newIssue,
+      issue: populatedIssue || newIssue,
     });
   } catch (error) {
     console.error("REPORT ISSUE: unexpected error:", error);

@@ -13,7 +13,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  // ✅ Lazy initialization (NO effect needed)
+  // Lazy initialization (NO effect needed)
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() => {
     try {
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  // ✅ Effect only syncs external system (axios)
+  //  Effect only syncs external system (axios)
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;

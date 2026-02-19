@@ -1,6 +1,7 @@
+const dotenv = require("dotenv");
+dotenv.config();
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const cloudinary = require("cloudinary").v2;
 const authRoutes = require("./routes/authRoutes");
@@ -11,7 +12,6 @@ const adminIssueRoutes = require("./routes/adminIssueRoutes");
 const adminReportsRoutes = require("./routes/adminReports");
 const adminUserRoutes = require("./routes/adminUserRoutes");
 
-dotenv.config();
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

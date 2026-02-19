@@ -47,15 +47,31 @@ const ViewComplaints = () => {
   const [hasMoreComplaints, setHasMoreComplaints] = useState(true);
   const fetchedIdsRef = useRef(new Set());
 
+  const getReporterName = (complaint) => {
+    if (!complaint) return "Anonymous User";
+
+    const reporter = complaint.reportedBy;
+    if (reporter && typeof reporter === "object") {
+      return reporter.name || reporter.username || "Anonymous User";
+    }
+
+    // If reportedBy is just an ID string/objectId, resolve own report using logged-in user.
+    if (reporter && String(reporter) === String(user?._id || user?.id)) {
+      return user?.name || user?.username || "You";
+    }
+
+    return "Anonymous User";
+  };
+
   const updateIssueInState = (updatedIssue) => {
     if (!updatedIssue) return;
     const id = updatedIssue._id || updatedIssue.id;
 
     setMyAreaReports((prev) =>
-      prev.map((i) => ((i._id || i.id) === id ? updatedIssue : i))
+      prev.map((i) => ((i._id || i.id) === id ? updatedIssue : i)),
     );
     setOtherReports((prev) =>
-      prev.map((i) => ((i._id || i.id) === id ? updatedIssue : i))
+      prev.map((i) => ((i._id || i.id) === id ? updatedIssue : i)),
     );
 
     setCommentsLocal((prev) => ({
@@ -79,7 +95,7 @@ const ViewComplaints = () => {
       const token = localStorage.getItem("token");
       const res = await axios.get(
         `${BACKEND}/api/issues/${issueId}/comments?page=${pageNum}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (pageNum === 1) setComments(res.data.comments);
@@ -105,7 +121,7 @@ const ViewComplaints = () => {
         const next = pageComments + 1;
         fetchComments(
           selectedComplaintForComments._id || selectedComplaintForComments.id,
-          next
+          next,
         );
         setPageComments(next);
       }
@@ -126,7 +142,7 @@ const ViewComplaints = () => {
       const token = localStorage.getItem("token");
       const res = await axios.get(
         `${BACKEND}/api/issues?page=${page}&limit=${PAGE_SIZE}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       const hasServerPagination = typeof res.data.totalPages !== "undefined";
@@ -162,10 +178,10 @@ const ViewComplaints = () => {
       if (reset) {
         fetchedIdsRef.current = new Set();
         myArea.forEach((issue) =>
-          fetchedIdsRef.current.add(issue._id || issue.id)
+          fetchedIdsRef.current.add(issue._id || issue.id),
         );
         others.forEach((issue) =>
-          fetchedIdsRef.current.add(issue._id || issue.id)
+          fetchedIdsRef.current.add(issue._id || issue.id),
         );
         setMyAreaReports(myArea);
         setOtherReports(others);
@@ -249,7 +265,7 @@ const ViewComplaints = () => {
       filtered.sort(
         (a, b) =>
           priorityOrder[a.priority] - priorityOrder[b.priority] ||
-          new Date(b.createdAt) - new Date(a.createdAt)
+          new Date(b.createdAt) - new Date(a.createdAt),
       );
     } else if (sortBy === "newest") {
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -280,7 +296,7 @@ const ViewComplaints = () => {
       const res = await axios.post(
         `${BACKEND}/api/issues/${issueId}/vote/${type}`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (res.data?.success && res.data.issue) {
@@ -338,7 +354,7 @@ const ViewComplaints = () => {
       const res = await axios.post(
         `${BACKEND}/api/issues/${issueId}/comments`,
         { text },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (res.data?.success) {
@@ -357,15 +373,15 @@ const ViewComplaints = () => {
             prev.map((i) =>
               (i._id || i.id) === issueId
                 ? { ...i, commentsCount: (i.commentsCount || 0) + 1 }
-                : i
-            )
+                : i,
+            ),
           );
           setOtherReports((prev) =>
             prev.map((i) =>
               (i._id || i.id) === issueId
                 ? { ...i, commentsCount: (i.commentsCount || 0) + 1 }
-                : i
-            )
+                : i,
+            ),
           );
         }
         setNewComment("");
@@ -393,7 +409,7 @@ const ViewComplaints = () => {
       const token = localStorage.getItem("token");
       const res = await axios.delete(
         `${BACKEND}/api/issues/${issueId}/comments/${commentId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (res.data?.success) {
@@ -403,15 +419,15 @@ const ViewComplaints = () => {
           prev.map((i) =>
             (i._id || i.id) === issueId
               ? { ...i, commentsCount: Math.max((i.commentsCount || 1) - 1, 0) }
-              : i
-          )
+              : i,
+          ),
         );
         setOtherReports((prev) =>
           prev.map((i) =>
             (i._id || i.id) === issueId
               ? { ...i, commentsCount: Math.max((i.commentsCount || 1) - 1, 0) }
-              : i
-          )
+              : i,
+          ),
         );
         Swal.fire({
           title: "Deleted",
@@ -463,7 +479,7 @@ const ViewComplaints = () => {
     setModalImageIndex(
       (i) =>
         (i - 1 + selectedComplaint.imageUrls.length) %
-        selectedComplaint.imageUrls.length
+        selectedComplaint.imageUrls.length,
     );
   };
   const nextImage = () => {
@@ -476,9 +492,9 @@ const ViewComplaints = () => {
     if (q)
       window.open(
         `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          q
+          q,
         )}`,
-        "_blank"
+        "_blank",
       );
   };
 
@@ -705,7 +721,7 @@ const ViewComplaints = () => {
                     onClick={() =>
                       window.open(
                         selectedComplaint.imageUrls[modalImageIndex],
-                        "_blank"
+                        "_blank",
                       )
                     }
                     style={{ cursor: "pointer" }}
@@ -805,9 +821,7 @@ const ViewComplaints = () => {
               {/* User Name Section */}
               <div className="info-item" style={{ minWidth: "150px" }}>
                 <i className="bi bi-person-fill" style={{ flexShrink: 0 }} />
-                {selectedComplaint.reportedBy?.name ||
-                  selectedComplaint.reportedBy?.username ||
-                  "Anonymous User"}
+                {getReporterName(selectedComplaint)}
               </div>
             </div>
 
@@ -879,7 +893,7 @@ const ViewComplaints = () => {
                   onClick={() =>
                     handleAddComment(
                       selectedComplaintForComments._id ||
-                        selectedComplaintForComments.id
+                        selectedComplaintForComments.id,
                     )
                   }
                   style={{ height: "fit-content", alignSelf: "center" }}
@@ -935,7 +949,7 @@ const ViewComplaints = () => {
                               handleDeleteComment(
                                 selectedComplaintForComments._id ||
                                   selectedComplaintForComments.id,
-                                c._id
+                                c._id,
                               )
                             }
                             style={{
@@ -957,7 +971,7 @@ const ViewComplaints = () => {
                 ) : loading ? (
                   <p>Loading...</p>
                 ) : (
-                  <p>No comments yet.</p>
+                  <p style={{ color: "var(--g-2)" }}>No comments yet.</p>
                 )}
               </div>
             </div>
