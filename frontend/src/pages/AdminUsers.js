@@ -31,10 +31,12 @@ export default function AdminUsers() {
 
   const scrollContainerRef = useRef(null);
   const searchTimeout = useRef(null);
+  const loadingRef = useRef(false);
 
   const fetchUsers = useCallback(
-    async (pageNum, shouldReset = false, search = searchTerm) => {
-      if (loading) return;
+    async (pageNum, shouldReset = false, search = "") => {
+      if (loadingRef.current) return;
+      loadingRef.current = true;
       setLoading(true);
 
       try {
@@ -69,10 +71,11 @@ export default function AdminUsers() {
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
     },
-    [loading]
+    []
   );
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -84,7 +87,7 @@ export default function AdminUsers() {
     }, 500);
 
     return () => clearTimeout(searchTimeout.current);
-  }, [searchTerm, activeTab]);
+  }, [searchTerm, activeTab, fetchUsers]);
   const handleScroll = () => {
     if (!scrollContainerRef.current || loading || !hasMore) return;
     const { scrollTop, scrollHeight, clientHeight } =
@@ -157,7 +160,7 @@ export default function AdminUsers() {
       });
     } catch (err) {
       console.error(err);
-      fetchUsers(1, true);
+      fetchUsers(1, true, searchTerm);
     }
   };
 
@@ -196,7 +199,7 @@ export default function AdminUsers() {
         showConfirmButton: false,
       });
     } catch (err) {
-      fetchUsers(1, true);
+      fetchUsers(1, true, searchTerm);
     }
   };
 
@@ -226,7 +229,7 @@ export default function AdminUsers() {
         showConfirmButton: false,
       });
     } catch (err) {
-      fetchUsers(1, true);
+      fetchUsers(1, true, searchTerm);
     }
   };
 

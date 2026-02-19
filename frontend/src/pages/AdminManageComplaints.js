@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -49,6 +49,8 @@ const AdminManageComplaints = () => {
   const [pageComplaints, setPageComplaints] = useState(1);
   const [hasMoreComplaints, setHasMoreComplaints] = useState(true);
   const fetchedIdsRef = useRef(new Set());
+  const loadingRef = useRef(false);
+  const loadingComplaintsRef = useRef(false);
 
   const statusOptions = ["reported", "in progress", "resolved", "closed"];
 
@@ -104,10 +106,11 @@ const AdminManageComplaints = () => {
     fetchedIdsRef.current.delete(issueId);
   };
 
-  const fetchComments = async (issueId, pageNum = 1) => {
-    if (loading) return;
+  const fetchComments = useCallback(async (issueId, pageNum = 1) => {
+    if (loadingRef.current) return;
 
     try {
+      loadingRef.current = true;
       setLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(
@@ -124,9 +127,10 @@ const AdminManageComplaints = () => {
     } catch (err) {
       console.error("Error loading comments:", err);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -150,11 +154,19 @@ const AdminManageComplaints = () => {
     return () => {
       if (modalBox) modalBox.removeEventListener("scroll", handleScroll);
     };
-  }, [loading, hasMoreComments, selectedComplaintForComments, pageComments]);
+  }, [
+    loading,
+    hasMoreComments,
+    selectedComplaintForComments,
+    pageComments,
+    fetchComments,
+  ]);
 
-  const fetchComplaints = async (page = 1, { reset = false } = {}) => {
-    if (loadingComplaints) return;
+  const fetchComplaints = useCallback(
+    async (page = 1, { reset = false } = {}) => {
+      if (loadingComplaintsRef.current) return;
     try {
+      loadingComplaintsRef.current = true;
       setLoadingComplaints(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(
@@ -230,13 +242,16 @@ const AdminManageComplaints = () => {
     } catch (err) {
       console.error("Error loading complaints:", err);
     } finally {
+      loadingComplaintsRef.current = false;
       setLoadingComplaints(false);
     }
-  };
+    },
+    [user?.postalCode]
+  );
 
   useEffect(() => {
     fetchComplaints(1, { reset: true });
-  }, []);
+  }, [fetchComplaints]);
 
   useEffect(() => {
     const container = document.querySelector(".complaints-scroll-container");
@@ -262,7 +277,7 @@ const AdminManageComplaints = () => {
 
     container.addEventListener("scroll", onScroll);
     return () => container.removeEventListener("scroll", onScroll);
-  }, [pageComplaints, loadingComplaints, hasMoreComplaints]);
+  }, [pageComplaints, loadingComplaints, hasMoreComplaints, fetchComplaints]);
 
   useEffect(() => {
     setMyAreaReports([]);
@@ -271,7 +286,7 @@ const AdminManageComplaints = () => {
     setHasMoreComplaints(true);
     setPageComplaints(1);
     fetchComplaints(1, { reset: true });
-  }, [filter, sortBy]);
+  }, [filter, sortBy, fetchComplaints]);
 
   const sortAndFilterReports = (reports) => {
     let filtered = [...reports];

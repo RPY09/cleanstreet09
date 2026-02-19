@@ -67,6 +67,7 @@ const ReportIssue = () => {
 
   useEffect(() => {
     let mounted = true;
+    let initialMap;
     const markerStyle = new Style({
       image: new Icon({
         anchor: [0.5, 1],
@@ -77,7 +78,7 @@ const ReportIssue = () => {
     const initMap = async () => {
       const centerProjected = await getInitialCenterForAddress(user?.location);
 
-      const initialMap = new Map({
+      initialMap = new Map({
         target: mapElement.current,
         layers: [
           new TileLayer({ source: new OSM() }),
@@ -125,13 +126,15 @@ const ReportIssue = () => {
 
     return () => {
       mounted = false;
-      if (map) {
-        map.setTarget(undefined);
-      }
-
-      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+      if (initialMap) initialMap.setTarget(undefined);
     };
   }, [markerSource, user?.location]);
+
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
